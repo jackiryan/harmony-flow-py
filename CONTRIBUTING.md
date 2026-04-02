@@ -78,7 +78,7 @@ If any performance improvements are being made, include graphs and charts.
 
 ### Changelog
 
-harmony-flow maintains a [changelog](CHANGELOG.md). See
+harmonyflow maintains a [changelog](CHANGELOG.md). See
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) for more
 information.
 
@@ -183,7 +183,7 @@ module should be able to run locally without any reliance on outside services.
 
 ### Documentation
 
-harmony-flow uses [Numpy docstrings](https://numpydoc.readthedocs.io/en/latest/format.html).
+harmonyflow uses [Numpy docstrings](https://numpydoc.readthedocs.io/en/latest/format.html).
 All functions should contain a docstring, though short or trivial
 function may contain a 1-line docstring.
 

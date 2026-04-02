@@ -1,0 +1,27 @@
+[project]
+name = "harmonyflow"
+version = "0.1.0"
+description = "NASA Harmony API Service for creating vector flow textures"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+    {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
+]
+maintainers = [
+    {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jackiryan/harmony-flow"
+Issues = "https://github.com/jackiryan/harmony-flow/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

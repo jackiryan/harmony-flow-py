@@ -1,0 +1,19 @@
+#!/bin/bash
+# Build a Docker image of the harmony-flow service.
+
+image="ghcr.io/nasa/harmony-flow"
+
+# Retrieve the tag from the script arguments, or default to "latest". Bamboo
+# will pass the contents of `docker/service_version.txt` as this argument,
+# which contains a semantic version number.
+tag=${1:-latest}
+
+# Remove old versions of: ghcr.io/nasa/harmony-flow and
+# ghcr.io/nasa/harmony-flow-test
+./bin/clean-images
+
+# Build the image
+# This command tags the image in two ways:
+# - The tag supplied as a script argument.
+# - "latest", so the test Dockerfile can use the service image as a base image.
+docker build --platform linux/amd64 -t ${image}:${tag} -t ${image}:latest -f docker/service.Dockerfile .
