@@ -46,10 +46,6 @@ USER dockeruser
 RUN pip install --no-cache-dir --force --user --index-url https://pypi.org/simple/ --extra-index-url https://test.pypi.org/simple/ $SOURCE \
     && rm -rf $DIST_PATH
 
-# Copy service code.
-COPY ./harmony_service harmony_service
-COPY ./hybig hybig
-
 COPY --chown=dockeruser ./docker/docker-entrypoint.sh docker-entrypoint.sh
 # Run the subsetter
 ENTRYPOINT ["./docker-entrypoint.sh"]

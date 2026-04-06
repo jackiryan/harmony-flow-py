@@ -1,27 +1,59 @@
 [project]
-name = "harmonyflow"
-version = "0.1.0"
+name = "harmony-flow"
 description = "NASA Harmony API Service for creating vector flow textures"
-readme = "README.md"
-requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
 authors = [
     {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
 ]
 maintainers = [
     {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
 ]
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.12, <4"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
 ]
-dependencies = []
+dynamic = ["version"]
+dependencies = [
+    "dask ~= 2026.3.0",
+    "h5netcdf ~= 1.8",
+    "h5py ~= 3.16",
+    "harmony-service-lib ~= 2.11.0",
+    "rasterio ~= 1.5",
+    "requests ~= 2.33",
+]
 
 [project.urls]
-Homepage = "https://github.com/jackiryan/harmony-flow"
-Issues = "https://github.com/jackiryan/harmony-flow/issues"
+Homepage = "https://github.com/jackiryan/harmony-flow-py"
+Issues = "https://github.com/jackiryan/harmony-flow-py/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/harmony-flow/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harmony-flow"]
+
+[project.optional-dependencies]
+dev = [
+    "coverage ~= 7.13",
+    "flake8 ~= 7.3",
+    "pytest ~= 9.0",
+    "pytest-cov ~= 7.1.0",
+    "types-requests ~= 2.33",
+]
+
+[tool.flake8]
+max-line-length = 99
+ignore = ["F401", "W503"]
