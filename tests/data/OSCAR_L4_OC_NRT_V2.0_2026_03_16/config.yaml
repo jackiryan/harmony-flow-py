@@ -1,0 +1,13 @@
+inline_chunk_threshold_bytes: null
+get_partial_values_concurrency: null
+compression: null
+max_concurrent_requests: null
+caching: null
+storage: null
+virtual_chunk_containers:
+  https://archive.podaac.earthdata.nasa.gov/:
+    name: null
+    url_prefix: https://archive.podaac.earthdata.nasa.gov/
+    store: !http
+      getOpts: 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJvcmlnaW4iOiJFYXJ0aGRhdGEgTG9naW4iLCJzaWciOiJlZGxqd3RwdWJrZXlfb3BzIiwiYWxnIjoiUlMyNTYifQ.eyJ0eXBlIjoiVXNlciIsInVpZCI6ImpyeWFuOTUiLCJleHAiOjE3ODA3NjcyODYsImlhdCI6MTc3NTU4MzI4NiwiaXNzIjoiaHR0cHM6Ly91cnMuZWFydGhkYXRhLm5hc2EuZ292IiwiaWRlbnRpdHlfcHJvdmlkZXIiOiJlZGxfb3BzIiwiYWNyIjoiZWRsIiwiYXNzdXJhbmNlX2xldmVsIjozfQ.Ud-aSXc_x5zbu58mT4l4lDMZTOYu_nszx-izSfqha3JjSoDr99855zW5Z5QtnJP7oS7LUfd5TnnIuBmjRtxCtELXnTnd5QoIDruzIojBPSKynCctIABTvlGBaiERN9dHykKzr74lMJBsBarIHMfICRi_oOpXDAcsGcO4Ebq3xbUrnLB4Cw6vJkHI3rPhQnM0dLdzjReMvN4EunnjGYvqoa8O4bXkBbrJfyojg6uTVJT3GUN6EeDfcB9kO-7tZz6FxRZC61bGeUgbgUqHdN5f-Z3R3k4vbHEPFdF320fEcwqndUS6vfwuYf6LaiHLFZwHbL05sYPZ3To95tBuKl1llw'
+manifest: null

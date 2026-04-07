@@ -7,6 +7,7 @@ from pathlib import Path
 
 KNOWN_MIME_TYPES = {
     ".nc4": "application/x-netcdf4",
+    ".nc": "application/x-netcdf",
     ".h5": "application/x-hdf5",
     ".wld": "text/plain",
     ".jgw": "text/plain",

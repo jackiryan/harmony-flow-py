@@ -23,7 +23,7 @@ Install directly from source:
 ```bash
 git clone https://github.com/jackiryan/harmony-flow-py.git
 cd harmony-flow-py
-uv sync
+uv sync --all-groups
 ```
 
 To run a script using the module within the managed environment:

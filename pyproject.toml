@@ -23,6 +23,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
+    "cftime ~= 1.6",
     "dask ~= 2026.3.0",
     "h5netcdf ~= 1.8",
     "h5py ~= 3.16",
@@ -45,13 +46,17 @@ path = "src/harmony-flow/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/harmony-flow"]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "coverage ~= 7.13",
+    "earthaccess ~= 0.17",
     "flake8 ~= 7.3",
+    "icechunk ~= 1.1",
+    "obstore ~= 0.9",
     "pytest ~= 9.0",
     "pytest-cov ~= 7.1.0",
     "types-requests ~= 2.33",
+    "virtualizarr ~= 2.5",
 ]
 
 [tool.flake8]

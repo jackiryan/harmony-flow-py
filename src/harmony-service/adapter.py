@@ -64,8 +64,8 @@ class VectorFlowAdapter(BaseHarmonyAdapter):
     def get_asset_from_item(self, item: Item) -> Asset:
         """Returns the correct browse asset from a stac Item.
 
-        This is used to select which asset is used by HyBIG to generate
-        the browse image following these steps:
+        This is used to select which asset is used by harmony-flow to generate
+        the image texture following these steps:
 
         1. If found, return the first asset with "visual" in any of the item's
            values' roles.
