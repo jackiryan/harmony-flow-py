@@ -10,42 +10,34 @@
 # such information to foreign countries or providing access to foreign
 # persons.
 
-FROM python:3.13-slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-    gcc \
-    libnetcdf-dev \
-    libhdf5-dev \
-    hdf5-helpers \
-    && pip3 install --upgrade pip \
-    && pip3 install cython \
-    && apt-get clean
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libhdf5-dev \
+        libnetcdf-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create a new user
 RUN adduser --quiet --disabled-password --shell /bin/sh --home /home/dockeruser --gecos "" --uid 1000 dockeruser
+
+WORKDIR /app
+
+# Copy dependency files first so this layer is cached unless deps change
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Copy source and install the project
+COPY README.md ./
+COPY src/ src/
+RUN uv sync --frozen --no-dev
+
+# harmony_service is not a distributed package, so add src/ to PYTHONPATH
+ENV PYTHONPATH="/app/src"
+ENV PATH="/app/.venv/bin:${PATH}"
+
+COPY docker/docker-entrypoint.sh docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
+
 USER dockeruser
-ENV HOME=/home/dockeruser
-ENV PYTHONPATH="/home/dockeruser/.local/bin:${!PYTHONPATH}"
-ENV PATH="/home/dockeruser/.local/bin:${PATH}"
-
-# The 'SOURCE' argument is what will be used in 'pip install'.
-ARG SOURCE
-
-# Set this argument if running the pip install on a local directory, so
-# the local dist files are copied into the container.
-ARG DIST_PATH
-
-USER root
-RUN mkdir -p /worker && chown dockeruser /worker
-USER dockeruser
-WORKDIR /worker
-
-COPY --chown=dockeruser $DIST_PATH $DIST_PATH
-USER dockeruser
-RUN pip install --no-cache-dir --force --user --index-url https://pypi.org/simple/ --extra-index-url https://test.pypi.org/simple/ $SOURCE \
-    && rm -rf $DIST_PATH
-
-COPY --chown=dockeruser ./docker/docker-entrypoint.sh docker-entrypoint.sh
-# Run the subsetter
 ENTRYPOINT ["./docker-entrypoint.sh"]

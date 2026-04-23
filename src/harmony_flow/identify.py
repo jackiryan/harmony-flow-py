@@ -1,3 +1,5 @@
+"""Utility functions for identifying granule files."""
+
 import os
 import struct
 
@@ -42,17 +44,18 @@ def identify_file(src_path: str) -> str:
 
     # TIFF / GeoTIFF -> rasterio engine
     if header[:2] in (b"II", b"MM"):
-        magic = struct.unpack_from("<H", header, 2)[0] if header[0:1] == b"I" \
+        magic = (
+            struct.unpack_from("<H", header, 2)[0]
+            if header[0:1] == b"I"
             else struct.unpack_from(">H", header, 2)[0]
+        )
         # 42 = regular TIFF, 43 = BigTIFF
         if magic in (42, 43):
             return "rasterio"
 
     # HDF4 -> no native xarray engine
     if header[:4] == b"\x0e\x03\x13\x01":
-        raise NotImplementedError(
-            "HDF4 files are not directly supported by harmony-flow."
-        )
+        raise NotImplementedError("HDF4 files are not directly supported by harmony-flow.")
 
     raise ValueError(f"Unrecognised file format for: {src_path}")
 
@@ -63,15 +66,16 @@ def has_object_dtype_variables(filepath: str) -> bool:
     has an object dtype (variable-length strings, ragged arrays, etc.)
     that would cause dask's auto-rechunking to fail.
     """
+
     def _check_group(group):
         for _, item in group.items():
             if isinstance(item, h5py.Dataset):
-                if item.dtype.kind == 'O' or h5py.check_vlen_dtype(item.dtype):
+                if item.dtype.kind == "O" or h5py.check_vlen_dtype(item.dtype):
                     return True
             elif isinstance(item, h5py.Group):
                 if _check_group(item):
                     return True
         return False
 
-    with h5py.File(filepath, 'r') as f:
+    with h5py.File(filepath, "r") as f:
         return _check_group(f)
