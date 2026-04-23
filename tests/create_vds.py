@@ -117,7 +117,6 @@ def virtualize_granules(
         combine="nested",
         parallel="dask",
     )
-    print(vds)
 
     # Using local_filesystem_storage will create an unavoidable warning:
     # WARN icechunk::storage::object_store: ...

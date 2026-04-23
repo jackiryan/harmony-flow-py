@@ -41,16 +41,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/harmony-flow/__init__.py"
+path = "src/harmony_flow/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/harmony-flow"]
+packages = ["src/harmony_flow"]
 
 [dependency-groups]
 dev = [
     "coverage ~= 7.13",
     "earthaccess ~= 0.17",
-    "flake8 ~= 7.3",
+    "ruff ~= 0.15",
+    "mypy ~= 1.20",
     "icechunk ~= 1.1",
     "obstore ~= 0.9",
     "pytest ~= 9.0",
@@ -59,6 +60,13 @@ dev = [
     "virtualizarr ~= 2.5",
 ]
 
-[tool.flake8]
-max-line-length = 99
-ignore = ["F401", "W503"]
+[tool.ruff]
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["F401"]
+
+[[tool.mypy.overrides]]
+module = ["harmony_service_lib", "h5py"]
+ignore_missing_imports = true

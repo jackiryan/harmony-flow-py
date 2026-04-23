@@ -29,7 +29,7 @@ uv sync --all-groups
 To run a script using the module within the managed environment:
 
 ```bash
-uv run python your_script.py
+uv run python tests/create_vds.py -h
 ```
 
 ### Frontend Installation
