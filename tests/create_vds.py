@@ -20,22 +20,19 @@ def get_edl_token() -> str | None:
     """Acquire Earthdata Login (EDL) and access token."""
     earthaccess.login()
     # This function is incorrectly documented, it returns a dict
-    return earthaccess.get_edl_token().get("access_token") # type: ignore
+    return earthaccess.get_edl_token().get("access_token")  # type: ignore
 
 
 def get_file_urls(
-        collection_shortname: str,
-        temporal: tuple[str] | tuple[str, str],
+    collection_shortname: str,
+    temporal: tuple[str] | tuple[str, str],
 ) -> list[str]:
     """
     Use earthaccess to find a set of granules from a collection.
     See https://earthaccess.readthedocs.io/en/stable/api/#earthaccess.api.search_data
     for more information.
     """
-    warnings.filterwarnings(
-        "ignore",
-        message="As of version 1.0*"
-    )
+    warnings.filterwarnings("ignore", message="As of version 1.0*")
     results = earthaccess.search_data(
         short_name=collection_shortname,
         temporal=temporal,
@@ -49,9 +46,9 @@ def get_file_urls(
 
 
 def construct_vds_name(
-        collection_shortname: str,
-        temporal: str,
-        output_dir: Path,
+    collection_shortname: str,
+    temporal: str,
+    output_dir: Path,
 ) -> Path:
     """
     Give a sensible name to the VDS. Note that virtual zarrs are directories, and not files.
@@ -73,9 +70,9 @@ def construct_vds_name(
 
 
 def virtualize_granules(
-        granule_urls: list[str],
-        vds_path: Path,
-        token: str,
+    granule_urls: list[str],
+    vds_path: Path,
+    token: str,
 ) -> None:
     """
     Create a small virtual dataset (zarr store) using DMR++ links from NASA Earthdata.
@@ -90,7 +87,7 @@ def virtualize_granules(
     warnings.filterwarnings(
         "ignore",
         message="Numcodecs codecs are not in the Zarr version 3 specification*",
-        category=UserWarning
+        category=UserWarning,
     )
 
     # Create an HTTPStore to access the granules via their the DMRPP urls
@@ -99,11 +96,7 @@ def virtualize_granules(
     print(domain)
     http_store = HTTPStore.from_url(
         f"https://{domain}",
-        client_options={
-            "default_headers": {
-                "Authorization": f"Bearer {token}"
-            }
-        }
+        client_options={"default_headers": {"Authorization": f"Bearer {token}"}},
     )
     obstore_registry = ObjectStoreRegistry({f"https://{domain}": http_store})
 
@@ -127,9 +120,7 @@ def virtualize_granules(
     config.set_virtual_chunk_container(
         icechunk.VirtualChunkContainer(
             f"https://{domain}/",
-            icechunk.http_store({
-                "getOpts": f"Authorization: Bearer {token}"
-            })
+            icechunk.http_store({"getOpts": f"Authorization: Bearer {token}"}),
         )
     )
     repo = icechunk.Repository.open_or_create(storage, config)
@@ -140,10 +131,10 @@ def virtualize_granules(
 
 
 def create_vds(
-        collection_shortname: str,
-        temporal: list[str],
-        output_dir: str = "./data/",
-        debug: bool = True,
+    collection_shortname: str,
+    temporal: list[str],
+    output_dir: str = "./data/",
+    debug: bool = True,
 ) -> Path:
     """
     Top-level function to create a small virtual dataset (VDS) from NASA
@@ -167,11 +158,13 @@ def create_vds(
     if edl_token is None:
         raise ValueError("Authentication failed: unable to acquire EDL token")
 
-    temporal_tuple: tuple[str] | tuple[str, str] = \
+    temporal_tuple: tuple[str] | tuple[str, str] = (
         (temporal[0],) if len(temporal) == 1 else (temporal[0], temporal[1])
+    )
     if debug:
-        time_str = f"on {temporal[0]}" if len(temporal) == 1 \
-            else f"from {temporal[0]} to {temporal[1]}"
+        time_str = (
+            f"on {temporal[0]}" if len(temporal) == 1 else f"from {temporal[0]} to {temporal[1]}"
+        )
         print(f"Searching for granules from {collection_shortname} {time_str}")
     dmrpp_urls = get_file_urls(collection_shortname, temporal_tuple)
 
@@ -191,8 +184,8 @@ def cli() -> argparse.Namespace:
         epilog="""
 Example:
     # Create OSCAR Ocean Currents (OC) VDS for 2026-03-17
-    uv run python create_vds.py OSCAR_L4_OC_NRT_V2.0 -t 2026-03-17 --output-dir tests/data/
-"""
+    uv run python tests/create_vds.py OSCAR_L4_OC_NRT_V2.0 -t 2026-03-17 --output-dir tests/data/
+""",
     )
 
     parser.add_argument(
@@ -211,19 +204,15 @@ Example:
             "For most use cases, specify a YYYY-mm-dd date, please see "
             "https://earthaccess.readthedocs.io/en/stable/api/#earthaccess.api.search_data"
             " for more details (look for temporal in the kwargs)"
-        )
+        ),
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="./data/",
-        help="Directory to store VDS on the local filesystem. Name is automatically selected."
+        help="Directory to store VDS on the local filesystem. Name is automatically selected.",
     )
-    parser.add_argument(
-        "--quiet",
-        action="store_false",
-        help="Do not print debug information"
-    )
+    parser.add_argument("--quiet", action="store_false", help="Do not print debug information")
 
     args = parser.parse_args()
     if len(args.temporal) > 2:

@@ -1,11 +1,50 @@
 import os
 import struct
 
+import h5netcdf
 import h5py
 import numpy as np
 import pytest
+import rasterio
+from rasterio.transform import from_bounds
 
 from harmony_flow.identify import has_object_dtype_variables, identify_file
+
+
+_TRANSFORM = from_bounds(0, 0, 1, 1, 4, 4)
+_ONES = np.ones((1, 4, 4), dtype=np.float32)
+
+
+def _write_geotiff(path):
+    with rasterio.open(
+        str(path),
+        "w",
+        driver="GTiff",
+        height=4,
+        width=4,
+        count=1,
+        dtype=np.float32,
+        crs="EPSG:4326",
+        transform=_TRANSFORM,
+    ) as dst:
+        dst.write(_ONES)
+
+
+def _write_bigtiff(path):
+    with rasterio.open(
+        str(path),
+        "w",
+        driver="GTiff",
+        height=4,
+        width=4,
+        count=1,
+        dtype=np.float32,
+        crs="EPSG:4326",
+        transform=_TRANSFORM,
+        BIGTIFF="YES",
+    ) as dst:
+        dst.write(_ONES)
+
 
 ZARR_DIR = os.path.join(os.path.dirname(__file__), "data", "OSCAR_L4_OC_NRT_V2.0_2026_03_16")
 
@@ -13,6 +52,7 @@ ZARR_DIR = os.path.join(os.path.dirname(__file__), "data", "OSCAR_L4_OC_NRT_V2.0
 # ---------------------------------------------------------------------------
 # identify_file
 # ---------------------------------------------------------------------------
+
 
 class TestIdentifyFile:
     def test_zarr_directory(self):
@@ -23,15 +63,12 @@ class TestIdentifyFile:
         with pytest.raises(ValueError, match="does not appear to be a Zarr store"):
             identify_file(str(tmp_path))
 
-    def test_netcdf_classic(self, tmp_path):
-        f = tmp_path / "classic.nc"
-        f.write_bytes(b"CDF\x01" + b"\x00" * 4)
-        assert identify_file(str(f)) == "netcdf4"
-
-    def test_netcdf_64bit_offset(self, tmp_path):
-        f = tmp_path / "offset.nc"
-        f.write_bytes(b"CDF\x02" + b"\x00" * 4)
-        assert identify_file(str(f)) == "netcdf4"
+    def test_netcdf4_returns_h5netcdf(self, tmp_path):
+        f = tmp_path / "test.nc"
+        with h5netcdf.File(str(f), "w") as ncf:
+            ncf.dimensions = {"x": 4}
+            ncf.create_variable("data", ("x",), data=np.ones(4, dtype=np.float32))
+        assert identify_file(str(f)) == "h5netcdf"
 
     def test_hdf5_returns_h5netcdf(self, tmp_path):
         f = tmp_path / "test.h5"
@@ -39,25 +76,24 @@ class TestIdentifyFile:
             hf.create_dataset("data", data=[1, 2, 3])
         assert identify_file(str(f)) == "h5netcdf"
 
-    def test_tiff_little_endian(self, tmp_path):
+    def test_geotiff(self, tmp_path):
         f = tmp_path / "test.tif"
-        header = b"II" + struct.pack("<H", 42) + b"\x00" * 2
-        f.write_bytes(header)
+        _write_geotiff(f)
         assert identify_file(str(f)) == "rasterio"
 
-    def test_tiff_big_endian(self, tmp_path):
-        f = tmp_path / "test.tif"
-        header = b"MM" + struct.pack(">H", 42) + b"\x00" * 2
-        f.write_bytes(header)
-        assert identify_file(str(f)) == "rasterio"
-
-    def test_bigtiff_little_endian(self, tmp_path):
-        f = tmp_path / "test.tif"
-        header = b"II" + struct.pack("<H", 43) + b"\x00" * 2
-        f.write_bytes(header)
+    def test_bigtiff(self, tmp_path):
+        f = tmp_path / "bigtiff.tif"
+        _write_bigtiff(f)
         assert identify_file(str(f)) == "rasterio"
 
     def test_hdf4_raises_not_implemented(self, tmp_path):
+        """
+        This is a baloney test but the file signature comes from Wikipedia:
+        https://en.wikipedia.org/wiki/List_of_file_signatures
+
+        If we intend to support legacy MODIS data we will need to add
+        pyhdf as a dependency to verify this behavior.
+        """
         f = tmp_path / "test.hdf"
         f.write_bytes(b"\x0e\x03\x13\x01" + b"\x00" * 4)
         with pytest.raises(NotImplementedError, match="HDF4"):
@@ -73,6 +109,7 @@ class TestIdentifyFile:
 # ---------------------------------------------------------------------------
 # has_object_dtype_variables
 # ---------------------------------------------------------------------------
+
 
 class TestHasObjectDtypeVariables:
     def _make_hdf5(self, tmp_path, name="test.h5"):

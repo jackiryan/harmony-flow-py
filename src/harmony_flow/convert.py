@@ -1,6 +1,6 @@
 """Core functionality for generating image textures from a granule file."""
 
-from logging import Logger
+from logging import Logger, LoggerAdapter
 from pathlib import Path
 
 import icechunk
@@ -12,6 +12,10 @@ from .identify import (
 )
 
 
+type HarmonyLogger = Logger | LoggerAdapter[Logger]
+type ServiceResult = list[tuple[Path, Path, Path]]
+
+
 def open_zarr(src_granule: Path) -> xr.Dataset:
     """Open a virtual zarr from the local filesystem using its saved config."""
     storage = icechunk.local_filesystem_storage(str(src_granule))
@@ -20,7 +24,7 @@ def open_zarr(src_granule: Path) -> xr.Dataset:
     return xr.open_zarr(
         session.store,
         consolidated=False,
-        zarr_format=3
+        zarr_format=3,
     )
 
 
@@ -41,18 +45,18 @@ def open_dataset(src_granule: Path, granule_type: str) -> xr.Dataset:
 
 
 def process_dataset(
-        src_ds: xr.Dataset,
-        var_list: list[str],
-        logger: Logger,
+    src_ds: xr.Dataset,
+    var_list: list[str],
+    logger: HarmonyLogger | None = None,
 ) -> None:
     return
 
 
 def create_image_texture(
-        src_granule: Path,
-        var_list: list[str],
-        logger: Logger,
-) -> list[tuple[Path, Path, Path]]:
+    src_granule: Path,
+    var_list: list[str],
+    logger: HarmonyLogger | None = None,
+) -> ServiceResult:
     """
     Create a PNG image texture from an input NetCDF/HDF-5 granule file.
     Variables will be encoded as bands in the order they appear in the var_list argument.
@@ -65,10 +69,11 @@ def create_image_texture(
         logger (logging.Logger): A configured Logger object for emitting log messages
 
     Returns:
-        list[tuple[pathlib.Path, pathlib.Path, pathlib.Path]]:
-        These are the file paths of:
+        ServiceResult:
+        A list of three-tuples where each element is a Path:
             - The output browse image
             - Its associated ESRI world file (containing georeferencing information)
+            - GDAL-compatible XML metadata
 
     """
     dst_image = src_granule.with_suffix(".png")

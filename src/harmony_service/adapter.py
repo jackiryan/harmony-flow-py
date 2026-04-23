@@ -25,6 +25,7 @@ from harmony_service_lib.util import (
 )
 from pystac import Asset, Catalog, Item
 
+from harmony_flow import create_image_texture
 from .exceptions import VectorFlowInvalidMessageError, VectorFlowServiceError
 from .utilities import (
     get_asset_name,
@@ -104,14 +105,20 @@ class VectorFlowAdapter(BaseHarmonyAdapter):
                     access_token=self.message.accessToken,
                 )
 
-                # TODO: Create image textures.
-                image_file_list = [
-                    (
-                        Path(input_data_filename),
-                        Path(input_data_filename),
-                        Path(input_data_filename)
-                    )
-                ]
+                # Determine variables in request:
+                source_variables = source.process("variables")
+
+                if source_variables:
+                    var_list: list[str] = list(map(lambda var: var.name, source_variables))
+                else:
+                    var_list = []
+
+                # Create image textures using harmony_flow module
+                image_file_list = create_image_texture(
+                    Path(input_data_filename),
+                    var_list,
+                    self.logger,
+                )
 
                 # image_file_list is a list of tuples (image, world, auxiliary)
                 # we need to stage them each individually, and then add their final
@@ -202,8 +209,6 @@ class VectorFlowAdapter(BaseHarmonyAdapter):
         manifest_fn = Path(image_file_list[0][0]).parent / "manifest.txt"
 
         with open(manifest_fn, "w", encoding="UTF-8") as file_pointer:
-            file_pointer.writelines(
-                f"{img}, {wld}, {aux}\n" for img, wld, aux in image_file_list
-            )
+            file_pointer.writelines(f"{img}, {wld}, {aux}\n" for img, wld, aux in image_file_list)
 
         return self.stage_output(manifest_fn, asset_href)
