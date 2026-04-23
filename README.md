@@ -24,6 +24,7 @@ Install directly from source:
 git clone https://github.com/jackiryan/harmony-flow-py.git
 cd harmony-flow-py
 uv sync --all-groups
+uv run pre-commit install
 ```
 
 To run a script using the module within the managed environment:

@@ -54,6 +54,7 @@ dev = [
     "mypy ~= 1.20",
     "icechunk ~= 1.1",
     "obstore ~= 0.9",
+    "pre-commit ~= 4.6",
     "pytest ~= 9.0",
     "pytest-cov ~= 7.1.0",
     "types-requests ~= 2.33",
@@ -67,6 +68,9 @@ line-length = 99
 select = ["E", "F", "W"]
 ignore = ["F401"]
 
+[tool.mypy]
+mypy_path = ["src"]
+
 [[tool.mypy.overrides]]
-module = ["harmony_service_lib", "h5py"]
+module = ["harmony_service_lib.*", "h5py"]
 ignore_missing_imports = true
