@@ -9,6 +9,11 @@ import pytest
 import rasterio
 import xarray as xr
 
+import hashlib
+import earthaccess
+from typing import Any
+from pathlib import Path
+
 from harmony_flow import convert
 from harmony_flow.convert import (
     _extract_2d,
@@ -425,3 +430,51 @@ class TestCreateImageTexture:
         png_path, world_path, _ = create_image_texture(path, ["u", "v"])[0]
         assert png_path.stem == "mydata"
         assert world_path.stem == "mydata"
+
+    def test_e2e_oscar_granule_to_png(self, tmp_path: Path) -> None:
+        """
+        End-to-End test: Downloads the 06/04/2026 OSCAR granule, processes it,
+        and validates the generated PNG against a known checksum.
+        """
+        EXPECTED_PNG_CHECKSUM: str = (
+            "e6734772b49c0bf34a04c7c8c8ede6fbc32a6c221b4cd3705ced47be5a4d82fd"
+        )
+
+        earthaccess.login()
+        results: list[Any] = earthaccess.search_data(
+            short_name="OSCAR_L4_OC_NRT_V2.0", temporal="2026-06-04", count=1
+        )
+        assert results
+
+        # saves to the pytest temp directory
+        downloaded_files: list[str] = earthaccess.download(results, local_path=str(tmp_path))
+        assert downloaded_files
+
+        oscar_granule: Path = Path(downloaded_files[0])
+
+        # runs the core module to create the PNG, world file, and metadata JSON
+        service_results: list[tuple[Path, Path, Path]] = create_image_texture(
+            src_granule=oscar_granule, var_list=["u", "v"]
+        )
+
+        # verification of outputs
+        assert len(service_results) == 1
+
+        dst_image: Path
+        dst_world: Path
+        dst_mdata: Path
+        dst_image, dst_world, dst_mdata = service_results[0]
+
+        assert dst_image.exists()
+        assert dst_world.exists()
+        assert dst_mdata.exists()
+
+        # checksum validation of the output PNG
+        hasher = hashlib.sha256()
+        with open(dst_image, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hasher.update(chunk)
+
+        actual_checksum: str = hasher.hexdigest()
+
+        assert actual_checksum == EXPECTED_PNG_CHECKSUM
