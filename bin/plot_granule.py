@@ -86,9 +86,12 @@ Examples:
         "-v",
         "--variables",
         type=str,
-        choices=["uv", "ugvg"],
-        default="uv",
-        help="Current type to process: 'uv' (total) or 'ugvg' (geostrophic). Default is uv.",
+        nargs=2,
+        default=["u", "v"],
+        help=(
+            "NetCDF variables to process for Red and Green channels "
+            "(exactly 2 required; default: u v)"
+        ),
     )
 
     return parser.parse_args()
@@ -97,12 +100,10 @@ Examples:
 if __name__ == "__main__":
     args: argparse.Namespace = cli()
 
-    var_list = ["u", "v"] if args.variables == "uv" else ["ug", "vg"]
-
     download_and_process(
         shortname=args.shortname,
         temporal=args.temporal,
-        variables=var_list,
+        variables=args.variables,
         output_override=args.output,
         output_dir=args.output_dir,
     )

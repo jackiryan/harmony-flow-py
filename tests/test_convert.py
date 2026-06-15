@@ -440,7 +440,7 @@ class TestCreateImageTexture:
             "e6734772b49c0bf34a04c7c8c8ede6fbc32a6c221b4cd3705ced47be5a4d82fd"
         )
 
-        earthaccess.login()
+        earthaccess.login(strategy="environment")
         results: list[Any] = earthaccess.search_data(
             short_name="OSCAR_L4_OC_NRT_V2.0", temporal="2026-06-04", count=1
         )
