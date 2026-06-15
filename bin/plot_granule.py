@@ -6,7 +6,7 @@ the output PNG based on smart defaults or user overrides.
 """
 
 import argparse
-import shutil
+import warnings
 from pathlib import Path
 
 import earthaccess
@@ -22,35 +22,24 @@ def download_and_process(
 ) -> None:
     earthaccess.login()
 
+    warnings.filterwarnings("ignore", "As of version 1.0*", FutureWarning)
     results = earthaccess.search_data(short_name=shortname, temporal=temporal, count=1)
 
     if not results:
         raise ValueError(f"No granules found for {shortname} on {temporal}")
 
-    downloaded_files: list[str] = earthaccess.download(results, local_path=".")
-    src_granule: Path = Path(downloaded_files[0])
-
-    service_results: list[tuple[Path, Path, Path]] = create_image_texture(
-        src_granule=src_granule, var_list=variables
-    )
-
-    if not service_results:
-        raise RuntimeError("Processing failed: No outputs returned from create_image_texture.")
-
-    dst_image, dst_world, dst_mdata = service_results[0]
-
     out_dir_path = Path(output_dir)
     out_dir_path.mkdir(parents=True, exist_ok=True)
 
-    if output_override:
-        final_png_path = out_dir_path / output_override
+    downloaded_files = earthaccess.download(results, local_path=out_dir_path)
+    src_granule = Path(downloaded_files[0])
+
+    service_results = create_image_texture(src_granule=src_granule, var_list=variables)
+
+    if service_results:
+        print(f"Successfully created {service_results[0][0]} and associated files")
     else:
-        var_str = "_".join(variables)
-        final_png_path = out_dir_path / f"{shortname}_{temporal}_{var_str}.png"
-
-    final_png_path.parent.mkdir(parents=True, exist_ok=True)
-
-    shutil.move(dst_image, final_png_path)
+        raise RuntimeError("Processing failed: No outputs returned from create_image_texture.")
 
 
 def cli() -> argparse.Namespace:
@@ -60,7 +49,7 @@ def cli() -> argparse.Namespace:
         epilog="""
 Examples:
     uv run python plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04
-    uv run python plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04 -v ugvg -d ./output
+    uv run python plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04 -v ug vg -d ./output
 """,
     )
 

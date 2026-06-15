@@ -1,6 +1,7 @@
 """Unit tests for harmony_flow.convert."""
 
 import logging
+import warnings
 from unittest.mock import MagicMock
 
 import h5netcdf
@@ -428,8 +429,8 @@ class TestCreateImageTexture:
     def test_output_paths_share_stem_with_input(self, tmp_path):
         path = _write_netcdf(tmp_path / "mydata.nc")
         png_path, world_path, _ = create_image_texture(path, ["u", "v"])[0]
-        assert png_path.stem == "mydata"
-        assert world_path.stem == "mydata"
+        assert png_path.stem == "mydata_u_v"
+        assert world_path.stem == "mydata_u_v"
 
     def test_e2e_oscar_granule_to_png(self, tmp_path: Path) -> None:
         """
@@ -440,7 +441,8 @@ class TestCreateImageTexture:
             "e6734772b49c0bf34a04c7c8c8ede6fbc32a6c221b4cd3705ced47be5a4d82fd"
         )
 
-        earthaccess.login(strategy="environment")
+        earthaccess.login()
+        warnings.filterwarnings("ignore", "As of version 1.0*", FutureWarning)
         results: list[Any] = earthaccess.search_data(
             short_name="OSCAR_L4_OC_NRT_V2.0", temporal="2026-06-04", count=1
         )
