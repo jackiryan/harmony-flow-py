@@ -216,9 +216,12 @@ def create_image_texture(
             - GDAL-compatible XML metadata
 
     """
-    dst_image = src_granule.with_suffix(".png")
-    dst_world = src_granule.with_suffix(".pgw")
-    dst_mdata = src_granule.with_suffix(".png.aux.xml")
+    out_name = Path(
+        src_granule.parent / f"{src_granule.stem}_{'_'.join(var_list)}{src_granule.suffix}"
+    )
+    dst_image = out_name.with_suffix(".png")
+    dst_world = out_name.with_suffix(".pgw")
+    dst_mdata = out_name.with_suffix(".png.aux.xml")
 
     granule_type = identify_file(str(src_granule))
     if granule_type == "zarr":
