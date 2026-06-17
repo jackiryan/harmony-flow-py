@@ -209,3 +209,10 @@ marimo/_lsp/
 __marimo__/
 
 .DS_Store
+
+# Ignore test data and image outputs
+*.nc
+*.pgw
+*.aux.xml
+*.png
+test_renders/

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+
+# Grab version from file
+tag=${1:-$(<docker/service_version.txt)}
+image="harmony-flow-test:${tag}"
+service_image="harmony-flow:${tag}"
+
+# Build service image locally via service Dockerfile
+docker build -t "${service_image}" -f docker/service.Dockerfile .
+
+# Build test image on top of the local service image
+docker build -t "${image}" --build-arg SERVICE_IMAGE="${service_image}" -f docker/tests.Dockerfile .

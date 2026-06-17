@@ -16,11 +16,11 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libhdf5-dev \
         libnetcdf-dev \
+        libexpat1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 RUN adduser --quiet --disabled-password --shell /bin/sh --home /home/dockeruser --gecos "" --uid 1000 dockeruser
-
 WORKDIR /app
 
 # Copy dependency files first so this layer is cached unless deps change
@@ -38,6 +38,8 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY docker/docker-entrypoint.sh docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh
+
+RUN chown -R dockeruser:dockeruser /app
 
 USER dockeruser
 ENTRYPOINT ["./docker-entrypoint.sh"]
