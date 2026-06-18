@@ -30,6 +30,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Copy source and install the project
 COPY README.md ./
 COPY src/ src/
+COPY docker/ docker/
 RUN uv sync --frozen --no-dev
 
 # harmony_service is not a distributed package, so add src/ to PYTHONPATH

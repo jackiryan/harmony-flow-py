@@ -4,12 +4,8 @@ set -e
 image="ghcr.io/nasa/harmony-flow"
 
 # Grab version from file
-#tag=${1:-$(<docker/service_version.txt)}
 tag=${1:-latest}
 test_image="${image}-test:${tag}"
-
-# Build service image locally via service Dockerfile
-#docker build -t "${service_image}" -f docker/service.Dockerfile .
 
 # Build test image on top of the local service image
 docker build --platform linux/amd64 -t "${test_image}" --build-arg SERVICE_IMAGE="${image}" -f docker/tests.Dockerfile .

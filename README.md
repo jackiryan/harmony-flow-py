@@ -41,6 +41,16 @@ The frontend example can be installed in a TBD manner.
 
 Once a new Docker image has been published with a new semantic version tag, that service version can be released to a Harmony environment by following the directions in the [Harmony Managing Existing Services Guide](https://github.com/nasa/harmony/blob/main/docs/guides/managing-existing-services.md).
 
+### Docker Development Scripts
+
+To streamline local development and ensure parity with the production environment, several bash scripts are provided in the `bin/` directory. These scripts automatically handle cross-platform architecture targeting and simplify Docker interactions.
+
+From the root of the repository, you can run:
+
+* **`./bin/build-image`**: Compiles the production Docker image locally using `docker/service.Dockerfile`.
+* **`./bin/build-test`**: Compiles the isolated local testing container using `docker/tests.Dockerfile`. This securely layers testing dependencies via `uv` on top of the remote production base image.
+* **`./bin/run-test`**: Executes the full `pytest` suite natively inside the containerized test environment to guarantee an exact match with production.
+
 ## Get in touch:
 
 You can reach out to the maintainer of this repository via email:

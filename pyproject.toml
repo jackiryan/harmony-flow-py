@@ -44,7 +44,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/harmony_flow/__init__.py"
+path = "docker/service_version.txt"
+pattern = "(?P<version>[\\w.-]+)"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/harmony_flow"]
