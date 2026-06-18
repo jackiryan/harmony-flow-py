@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+
+image="ghcr.io/nasa/harmony-flow"
+
+# Grab version from file
+tag=${1:-latest}
+test_image="${image}-test:${tag}"
+
+# Build test image on top of the local service image
+docker build --platform linux/amd64 -t "${test_image}" --build-arg SERVICE_IMAGE="${image}" -f docker/tests.Dockerfile .

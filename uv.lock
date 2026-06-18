@@ -781,23 +781,23 @@ dependencies = [
     { name = "h5netcdf" },
     { name = "h5py" },
     { name = "harmony-service-lib" },
+    { name = "icechunk" },
+    { name = "obstore" },
     { name = "rasterio" },
     { name = "requests" },
+    { name = "virtualizarr" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
     { name = "earthaccess" },
-    { name = "icechunk" },
     { name = "mypy" },
-    { name = "obstore" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "types-requests" },
-    { name = "virtualizarr" },
 ]
 
 [package.metadata]
@@ -807,23 +807,23 @@ requires-dist = [
     { name = "h5netcdf", specifier = "~=1.8" },
     { name = "h5py", specifier = "~=3.16" },
     { name = "harmony-service-lib", specifier = "~=2.11.0" },
+    { name = "icechunk", specifier = "~=1.1" },
+    { name = "obstore", specifier = "~=0.9" },
     { name = "rasterio", specifier = "~=1.5" },
     { name = "requests", specifier = "~=2.33" },
+    { name = "virtualizarr", specifier = "~=2.5" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = "~=7.13" },
     { name = "earthaccess", specifier = "~=0.17" },
-    { name = "icechunk", specifier = "~=1.1" },
     { name = "mypy", specifier = "~=1.20" },
-    { name = "obstore", specifier = "~=0.9" },
     { name = "pre-commit", specifier = "~=4.6" },
     { name = "pytest", specifier = "~=9.0" },
     { name = "pytest-cov", specifier = "~=7.1.0" },
     { name = "ruff", specifier = "~=0.15" },
     { name = "types-requests", specifier = "~=2.33" },
-    { name = "virtualizarr", specifier = "~=2.5" },
 ]
 
 [[package]]

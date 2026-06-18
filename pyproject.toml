@@ -28,8 +28,11 @@ dependencies = [
     "h5netcdf ~= 1.8",
     "h5py ~= 3.16",
     "harmony-service-lib ~= 2.11.0",
+    "icechunk ~= 1.1",
+    "obstore ~= 0.9",
     "rasterio ~= 1.5",
     "requests ~= 2.33",
+    "virtualizarr ~= 2.5",
 ]
 
 [project.urls]
@@ -41,7 +44,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/harmony_flow/__init__.py"
+path = "docker/service_version.txt"
+pattern = "(?P<version>[\\w.-]+)"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/harmony_flow"]
@@ -52,13 +56,10 @@ dev = [
     "earthaccess ~= 0.17",
     "ruff ~= 0.15",
     "mypy ~= 1.20",
-    "icechunk ~= 1.1",
-    "obstore ~= 0.9",
     "pre-commit ~= 4.6",
     "pytest ~= 9.0",
     "pytest-cov ~= 7.1.0",
     "types-requests ~= 2.33",
-    "virtualizarr ~= 2.5",
 ]
 
 [tool.ruff]
