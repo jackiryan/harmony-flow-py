@@ -20,6 +20,9 @@ jobs:
       - name: Extract semantic version number
         run: echo "semantic_version=$(cat docker/service_version.txt)" >> $GITHUB_ENV
 
+      - name: Build Base Image
+        run: ./bin/build-image ${{ env.semantic_version }}
+
       - name: Build Test Image
         run: ./bin/build-test ${{ env.semantic_version }}
 
