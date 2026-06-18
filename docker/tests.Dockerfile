@@ -1,4 +1,4 @@
-ARG SERVICE_IMAGE=harmony-flow:latest
+ARG SERVICE_IMAGE=harmony-flow
 FROM ${SERVICE_IMAGE}
 
 USER root

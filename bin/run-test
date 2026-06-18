@@ -2,11 +2,13 @@
 set -e
 
 # Grab version from file
-tag=${1:-$(<docker/service_version.txt)}
-image="harmony-flow-test:${tag}"
+tag=${1:-latest}
+image="ghcr.io/nasa/harmony-flow-test:${tag}"
 
 docker run \
+  --platform linux/amd64 \
   -e EARTHDATA_USERNAME \
   -e EARTHDATA_PASSWORD \
   --rm \
   "${image}"
+
