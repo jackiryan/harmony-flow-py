@@ -35,9 +35,48 @@ uv run python tests/create_vds.py -h
 
 ### Frontend Installation
 
-The frontend example can be installed in a TBD manner.
+This repository includes a modern Vite + TypeScript frontend to visualize the generated vector flow PNGs using OpenLayers and WebGL.
 
-## Releasing a new version of the service:
+**Prerequisites**
+- [Node.js](https://nodejs.org/) v18 or later (includes `npm`)
+
+To run the local visualization demo, you first need to generate a sample texture using the backend test scripts, and then serve it using the frontend web server.
+
+**1. Generate the Sample Data**
+Run the backend test suite to process the sample NetCDF data and automatically generate the output PNG in your root directory:
+```bash
+./bin/build-image
+./bin/build-test
+./bin/run-test
+```
+
+**2. Copy the Texture into the Frontend**
+Copy the generated PNG into the frontend's `public/` directory so the Vite dev server can serve it as a static asset:
+```bash
+cp OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png frontend/public/oscar_test.png
+```
+
+**3. Install Dependencies**
+Navigate into the frontend directory and install the required Node modules:
+```bash
+cd frontend
+npm install
+```
+
+**4. Start the Development Server**
+Start the Vite development server:
+```bash
+npm run dev
+```
+
+Once the server starts, open your browser and navigate to:
+```
+http://localhost:5173/
+```
+
+You will see the global ocean current vector flow visualization rendered over an interactive OpenLayers base map. The development server supports hot module replacement — any edits to `src/main.ts` or other source files will be reflected in the browser automatically without a full page reload.
+
+### Releasing a new version of the service:
 
 Once a new Docker image has been published with a new semantic version tag, that service version can be released to a Harmony environment by following the directions in the [Harmony Managing Existing Services Guide](https://github.com/nasa/harmony/blob/main/docs/guides/managing-existing-services.md).
 

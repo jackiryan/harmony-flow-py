@@ -9,7 +9,7 @@ import { createForProjection, wrapX } from 'ol/tilegrid.js';
 import { get as getProjection } from 'ol/proj.js'; 
 import './style.css';
 
-// 1. Load the PNG into a background canvas
+// 1. Load the PNG
 interface CurrentData {
     data: Uint8ClampedArray;
     width: number;
@@ -58,7 +58,7 @@ function interpolatePixels(
     );
 }
 
-// 3. Grid Setup (Now strictly Equirectangular EPSG:4326)
+// 3. Grid Setup
 const dataTileProjection = getProjection('EPSG:4326')!;
 const dataTileGrid = createForProjection(dataTileProjection, undefined, 256);
 const dataTileSize = 256;
@@ -70,7 +70,7 @@ const minV = -2.81, maxV = 2.69, deltaV = maxV - minV;
 
 // 4. Data Loader
 const currents = new DataTileSource({
-    projection: 'EPSG:4326', // Explicitly tell the source its projection
+    projection: 'EPSG:4326',
     tileGrid: dataTileGrid,
     transition: 0,
     wrapX: true, 
@@ -137,22 +137,58 @@ const flowColorExpression: any = [
     ['interpolate', ['linear'], ['get', 'speed'], ...colorStops]
 ];
 
-const flowLayer = new Flow({
-    source: currents,
-    maxSpeed: maxSpeed, 
-    style: { color: flowColorExpression },
-});
+function makeFlowLayer(): Flow {
+    return new Flow({
+        source: currents,
+        maxSpeed: maxSpeed,
+        style: { color: flowColorExpression },
+    });
+}
 
 // 6. Map Initialization
 const map = new Map({
     target: 'map',
     layers: [
-        new TileLayer({ source: new OSM() }), // OL will automatically squish OSM to fit 4326!
-        flowLayer,
+        new TileLayer({ source: new OSM() }),
     ],
     view: new View({ 
         center: [0, 0], 
         zoom: 2,
-        projection: 'EPSG:4326' // Force the map into Worldview's Equirectangular projection
+        projection: 'EPSG:4326' 
     }),
+});
+
+let flowLayer = makeFlowLayer();
+map.addLayer(flowLayer);
+
+// 7. Handle Flow Layer Visibility During Drag
+let warmUpId: number | null = null;
+
+map.on('movestart', () => {
+    if (warmUpId !== null) {
+        cancelAnimationFrame(warmUpId);
+        warmUpId = null;
+    }
+    flowLayer.setOpacity(0);
+});
+
+map.on('moveend', () => {
+    const oldLayer = flowLayer;
+    
+    flowLayer = makeFlowLayer();
+    flowLayer.setOpacity(0); 
+    map.addLayer(flowLayer);
+
+    let frames = 0;
+    const warmUp = () => {
+        frames++;
+        if (frames < 10) {
+            warmUpId = requestAnimationFrame(warmUp);
+        } else {
+            flowLayer.setOpacity(1);
+            map.removeLayer(oldLayer);  
+            warmUpId = null;
+        }
+    };
+    warmUpId = requestAnimationFrame(warmUp);
 });
