@@ -35,9 +35,38 @@ uv run python tests/create_vds.py -h
 
 ### Frontend Installation
 
-The frontend example can be installed in a TBD manner.
+This repository includes a sample frontend implementation of the intended use case for the PNG images produced by this Harmony service using OpenLayers.
 
-## Releasing a new version of the service:
+**Prerequisites**
+- [Node.js](https://nodejs.org/) v18 or later (includes `npm`)
+
+To run the local visualization demo, you first need to generate a sample texture using `plot_granule.py`, and then serve it using the frontend web server.
+
+**1. Generate the Sample Data**
+From the repo root, run `plot_granule.py` to download and process an OSCAR granule directly into the frontend's public directory:
+```bash
+uv run python bin/plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04 -d frontend/public
+```
+
+**2. Install Dependencies**
+Navigate into the frontend directory and install the required Node modules:
+```bash
+cd frontend
+npm install
+```
+
+**3. Start the Development Server**
+Start the Vite development server:
+```bash
+npm run dev
+```
+
+Once the server starts, open your browser and navigate to:
+```
+http://localhost:5173/
+```
+
+### Releasing a new version of the service:
 
 Once a new Docker image has been published with a new semantic version tag, that service version can be released to a Harmony environment by following the directions in the [Harmony Managing Existing Services Guide](https://github.com/nasa/harmony/blob/main/docs/guides/managing-existing-services.md).
 

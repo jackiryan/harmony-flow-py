@@ -216,3 +216,7 @@ __marimo__/
 *.aux.xml
 *.png
 test_renders/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

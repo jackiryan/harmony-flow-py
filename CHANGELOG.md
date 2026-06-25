@@ -9,9 +9,11 @@ The `harmony-flow` module follows semantic versioning. All notable changes to th
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Added local Docker testing scripts (`bin/build-test`, `bin/run-test`) and a dedicated test container (`docker/tests.Dockerfile`).
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Added GitHub Actions workflow (`publish_release.yml`) for automated Docker image building and registry publishing.
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Added `docker/service_version.txt` to strictly track semantic versions.
+- [issue/5](https://github.com/jackiryan/harmony-flow-py/issues/5): Added a frontend visualization to show the intended use case of the harmony service.
 ### Changed
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Refactored test architecture to securely layer testing dependencies via `uv` on top of the remote production base image.
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Updated `.gitignore` to exclude large test artifacts (`*.nc`, `*.png`, etc.).
+- [issue/5](https://github.com/jackiryan/harmony-flow-py/issues/5): Updated `README.md` frontend installation section with prerequisites and setup instructions for running the local visualization.
 ### Deprecated
 ### Removed
 ### Fixed
