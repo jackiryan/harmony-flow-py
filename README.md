@@ -35,35 +35,27 @@ uv run python tests/create_vds.py -h
 
 ### Frontend Installation
 
-This repository includes a modern Vite + TypeScript frontend to visualize the generated vector flow PNGs using OpenLayers and WebGL.
+This repository includes a sample frontend implementation of the intended use case for the PNG images produced by this Harmony service using OpenLayers.
 
 **Prerequisites**
 - [Node.js](https://nodejs.org/) v18 or later (includes `npm`)
 
-To run the local visualization demo, you first need to generate a sample texture using the backend test scripts, and then serve it using the frontend web server.
+To run the local visualization demo, you first need to generate a sample texture using `plot_granule.py`, and then serve it using the frontend web server.
 
 **1. Generate the Sample Data**
-Run the backend test suite to process the sample NetCDF data and automatically generate the output PNG in your root directory:
+From the repo root, run `plot_granule.py` to download and process an OSCAR granule directly into the frontend's public directory:
 ```bash
-./bin/build-image
-./bin/build-test
-./bin/run-test
+uv run python bin/plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04 -d frontend/public
 ```
 
-**2. Copy the Texture into the Frontend**
-Copy the generated PNG into the frontend's `public/` directory so the Vite dev server can serve it as a static asset:
-```bash
-cp OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png frontend/public/oscar_test.png
-```
-
-**3. Install Dependencies**
+**2. Install Dependencies**
 Navigate into the frontend directory and install the required Node modules:
 ```bash
 cd frontend
 npm install
 ```
 
-**4. Start the Development Server**
+**3. Start the Development Server**
 Start the Vite development server:
 ```bash
 npm run dev
@@ -73,8 +65,6 @@ Once the server starts, open your browser and navigate to:
 ```
 http://localhost:5173/
 ```
-
-You will see the global ocean current vector flow visualization rendered over an interactive OpenLayers base map. The development server supports hot module replacement — any edits to `src/main.ts` or other source files will be reflected in the browser automatically without a full page reload.
 
 ### Releasing a new version of the service:
 

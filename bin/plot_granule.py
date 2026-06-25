@@ -6,6 +6,8 @@ the output PNG based on smart defaults or user overrides.
 """
 
 import argparse
+import shutil
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -31,15 +33,28 @@ def download_and_process(
     out_dir_path = Path(output_dir)
     out_dir_path.mkdir(parents=True, exist_ok=True)
 
-    downloaded_files = earthaccess.download(results, local_path=out_dir_path)
-    src_granule = Path(downloaded_files[0])
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        downloaded_files = earthaccess.download(results, local_path=tmp_dir)
+        src_granule = Path(downloaded_files[0])
 
-    service_results = create_image_texture(src_granule=src_granule, var_list=variables)
+        service_results = create_image_texture(src_granule=src_granule, var_list=variables)
 
-    if service_results:
-        print(f"Successfully created {service_results[0][0]} and associated files")
-    else:
-        raise RuntimeError("Processing failed: No outputs returned from create_image_texture.")
+        if not service_results:
+            raise RuntimeError("Processing failed: No outputs returned from create_image_texture.")
+
+        src_png, src_pgw, src_xml = service_results[0]
+        var_suffix = "_".join(variables)
+        out_stem = output_override if output_override else f"{shortname}_{temporal}_{var_suffix}"
+
+        dst_png = out_dir_path / f"{out_stem}.png"
+        dst_pgw = out_dir_path / f"{out_stem}.pgw"
+        dst_xml = out_dir_path / f"{out_stem}.png.aux.xml"
+
+        shutil.copy2(src_png, dst_png)
+        shutil.copy2(src_pgw, dst_pgw)
+        shutil.copy2(src_xml, dst_xml)
+
+        print(f"Successfully created {dst_png} and associated files")
 
 
 def cli() -> argparse.Namespace:

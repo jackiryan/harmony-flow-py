@@ -35,7 +35,7 @@ const currentData: Promise<CurrentData> = new Promise((resolve, reject) => {
         });
     };
     image.onerror = () => reject(new Error('failed to load'));
-    image.src = '/oscar_test.png'; 
+    image.src = '/OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png';
 });
 
 // 2. Interpolation Math
