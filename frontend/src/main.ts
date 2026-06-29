@@ -195,7 +195,6 @@ map.on('moveend', () => {
         }
     };
     warmUpId = requestAnimationFrame(warmUp);
-<<<<<<< HEAD
 });
 
 // 8. Date Switching
