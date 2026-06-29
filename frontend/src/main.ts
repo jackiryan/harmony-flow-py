@@ -195,6 +195,7 @@ map.on('moveend', () => {
         }
     };
     warmUpId = requestAnimationFrame(warmUp);
+<<<<<<< HEAD
 });
 
 // 8. Date Switching
@@ -359,3 +360,6 @@ fetch('/metadata.json')
         if (meta.dates?.length) buildNavigator(meta.dates);
     })
     .catch(err => console.error('Failed to load metadata.json:', err));
+=======
+});
+>>>>>>> cacd0dad7bc00b6316574aebe89d324cc5987826
