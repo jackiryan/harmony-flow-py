@@ -163,10 +163,24 @@ const map = new Map({
 });
 
 let flowLayer = makeFlowLayer();
+flowLayer.setOpacity(0);
 map.addLayer(flowLayer);
 
 // 7. Handle Flow Layer Visibility During Drag
 let warmUpId: number | null = null;
+
+currentData.then(() => {
+    let frames = 0;
+    const warmUp = () => {
+        if (++frames < 10) {
+            warmUpId = requestAnimationFrame(warmUp);
+        } else {
+            flowLayer.setOpacity(1);
+            warmUpId = null;
+        }
+    };
+    warmUpId = requestAnimationFrame(warmUp);
+});
 
 map.on('movestart', () => {
     if (warmUpId !== null) {
