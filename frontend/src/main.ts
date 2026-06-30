@@ -16,27 +16,31 @@ interface CurrentData {
     height: number;
 }
 
-const currentData: Promise<CurrentData> = new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const context = canvas.getContext('2d');
-        if (!context) {
-            reject(new Error('Failed to get 2d context'));
-            return;
-        }
-        context.drawImage(image, 0, 0);
-        resolve({
-            data: context.getImageData(0, 0, image.width, image.height).data,
-            width: image.width,
-            height: image.height
-        });
-    };
-    image.onerror = () => reject(new Error('failed to load'));
-    image.src = '/OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png';
-});
+function loadImageData(src: string): Promise<CurrentData> {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const context = canvas.getContext('2d');
+            if (!context) {
+                reject(new Error('Failed to get 2d context'));
+                return;
+            }
+            context.drawImage(image, 0, 0);
+            resolve({
+                data: context.getImageData(0, 0, image.width, image.height).data,
+                width: image.width,
+                height: image.height
+            });
+        };
+        image.onerror = () => reject(new Error('failed to load'));
+        image.src = src;
+    });
+}
+
+let currentData: Promise<CurrentData> = loadImageData('/OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png');
 
 // 2. Interpolation Math
 function bilinearInterpolation(
@@ -159,10 +163,24 @@ const map = new Map({
 });
 
 let flowLayer = makeFlowLayer();
+flowLayer.setOpacity(0);
 map.addLayer(flowLayer);
 
 // 7. Handle Flow Layer Visibility During Drag
 let warmUpId: number | null = null;
+
+currentData.then(() => {
+    let frames = 0;
+    const warmUp = () => {
+        if (++frames < 10) {
+            warmUpId = requestAnimationFrame(warmUp);
+        } else {
+            flowLayer.setOpacity(1);
+            warmUpId = null;
+        }
+    };
+    warmUpId = requestAnimationFrame(warmUp);
+});
 
 map.on('movestart', () => {
     if (warmUpId !== null) {
@@ -192,3 +210,166 @@ map.on('moveend', () => {
     };
     warmUpId = requestAnimationFrame(warmUp);
 });
+
+// 8. Date Switching
+function switchDate(dateStr: string): void {
+    currentData = loadImageData(`/OSCAR_L4_OC_NRT_V2.0_${dateStr}_u_v.png`);
+    currents.clear();
+    if (warmUpId !== null) {
+        cancelAnimationFrame(warmUpId);
+        warmUpId = null;
+    }
+    const oldLayer = flowLayer;
+    flowLayer = makeFlowLayer();
+    flowLayer.setOpacity(0);
+    map.addLayer(flowLayer);
+    let frames = 0;
+    const warmUp = () => {
+        if (++frames < 10) {
+            warmUpId = requestAnimationFrame(warmUp);
+        } else {
+            flowLayer.setOpacity(1);
+            map.removeLayer(oldLayer);
+            warmUpId = null;
+        }
+    };
+    warmUpId = requestAnimationFrame(warmUp);
+}
+
+// 9. Time Navigator
+interface OscarMetadata { dates: string[] }
+
+interface URLSyncConfig {
+    year?: number;
+    month?: number;
+    day?: number;
+}
+
+interface AppState {
+    currentYear: number;
+    currentMonth: number;
+    currentDay: number;
+}
+
+const DEFAULT_STATE: AppState = {
+    currentYear: 2026,
+    currentMonth: 6,
+    currentDay: 4,
+};
+
+function dateStrToState(dateStr: string): AppState {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return { currentYear: year, currentMonth: month, currentDay: day };
+}
+
+function stateToDateStr(state: AppState): string {
+    const mm = String(state.currentMonth).padStart(2, '0');
+    const dd = String(state.currentDay).padStart(2, '0');
+    return `${state.currentYear}-${mm}-${dd}`;
+}
+
+function getStateFromURL(): AppState {
+    const params = new URLSearchParams(window.location.search);
+    const year  = Number(params.get('year'))  || DEFAULT_STATE.currentYear;
+    const month = Number(params.get('month')) || DEFAULT_STATE.currentMonth;
+    const day   = Number(params.get('day'))   || DEFAULT_STATE.currentDay;
+    return { currentYear: year, currentMonth: month, currentDay: day };
+}
+
+function pushStateToURL(config: URLSyncConfig): void {
+    const params = new URLSearchParams(window.location.search);
+    if (config.year  !== undefined) params.set('year',  String(config.year));
+    if (config.month !== undefined) params.set('month', String(config.month));
+    if (config.day   !== undefined) params.set('day',   String(config.day));
+    history.pushState(null, '', `?${params.toString()}`);
+}
+// --- end URL state sync ---
+
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function formatDateLabel(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
+}
+
+function buildNavigator(dates: string[]): void {
+    const initialState = getStateFromURL();
+    const initialDateStr = stateToDateStr(initialState);
+    const initialIdx = dates.indexOf(initialDateStr);
+    let idx = initialIdx >= 0 ? initialIdx : 0;
+    let isLoading = false;
+
+    if (idx !== 0) {
+        switchDate(dates[idx]);
+    }
+
+    const container = document.createElement('div');
+    container.className = 'time-navigator-container';
+
+    const nav = document.createElement('div');
+    nav.className = 'time-navigator';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'time-nav-button';
+    prevBtn.textContent = '◀';
+    prevBtn.setAttribute('aria-label', 'Previous date');
+
+    const display = document.createElement('span');
+    display.className = 'time-display';
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'time-nav-button';
+    nextBtn.textContent = '▶';
+    nextBtn.setAttribute('aria-label', 'Next date');
+
+    function sync(): void {
+        display.textContent = formatDateLabel(dates[idx]);
+        prevBtn.disabled = isLoading || idx <= 0;
+        nextBtn.disabled = isLoading || idx >= dates.length - 1;
+        nav.classList.toggle('loading', isLoading);
+    }
+
+    function navigateTo(newIdx: number): void {
+        if (isLoading) return;
+        isLoading = true;
+        idx = newIdx;
+        sync();
+        const state = dateStrToState(dates[idx]);
+        pushStateToURL({ year: state.currentYear, month: state.currentMonth, day: state.currentDay });
+        switchDate(dates[idx]);
+        setTimeout(() => { isLoading = false; sync(); }, 300);
+    }
+
+    prevBtn.addEventListener('click', () => { if (idx > 0) navigateTo(idx - 1); });
+    nextBtn.addEventListener('click', () => { if (idx < dates.length - 1) navigateTo(idx + 1); });
+
+    window.addEventListener('popstate', () => {
+        const state = getStateFromURL();
+        const target = stateToDateStr(state);
+        const targetIdx = dates.indexOf(target);
+        if (targetIdx >= 0 && targetIdx !== idx && !isLoading) {
+            isLoading = true;
+            idx = targetIdx;
+            sync();
+            switchDate(dates[idx]);
+            setTimeout(() => { isLoading = false; sync(); }, 300);
+        }
+    });
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(display);
+    nav.appendChild(nextBtn);
+    container.appendChild(nav);
+    document.getElementById('map')!.appendChild(container);
+    sync();
+}
+
+fetch('/metadata.json')
+    .then(r => r.json())
+    .then((meta: OscarMetadata) => {
+        if (meta.dates?.length) buildNavigator(meta.dates);
+    })
+    .catch(err => console.error('Failed to load metadata.json:', err));
