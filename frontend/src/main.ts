@@ -150,14 +150,15 @@ function makeFlowLayer(): Flow {
 }
 
 // 6. Map Initialization
+const initialView = getViewFromURL();
 const map = new Map({
     target: 'map',
     layers: [
         new TileLayer({ source: new OSM() }),
     ],
     view: new View({ 
-        center: [0, 0], 
-        zoom: 2,
+        center: initialView.center, 
+        zoom: initialView.zoom,
         projection: 'EPSG:4326' 
     }),
 });
@@ -191,6 +192,9 @@ map.on('movestart', () => {
 });
 
 map.on('moveend', () => {
+    const view = map.getView();
+    replaceViewInURL(view.getZoom()!, view.getCenter()!);
+
     const oldLayer = flowLayer;
     
     flowLayer = makeFlowLayer();
@@ -243,6 +247,9 @@ interface URLSyncConfig {
     year?: number;
     month?: number;
     day?: number;
+    zoom?: number;
+    lon?: number;
+    lat?: number;
 }
 
 interface AppState {
@@ -268,6 +275,25 @@ function stateToDateStr(state: AppState): string {
     return `${state.currentYear}-${mm}-${dd}`;
 }
 
+function getViewFromURL(): { center: [number, number]; zoom: number } {
+    const params = new URLSearchParams(window.location.search);
+    const zoomParam = params.get('zoom');
+    const lonParam  = params.get('lon');
+    const latParam  = params.get('lat');
+    const zoom = zoomParam !== null ? Number(zoomParam) : 2;
+    const lon  = lonParam  !== null ? Number(lonParam)  : 0;
+    const lat  = latParam  !== null ? Number(latParam)  : 0;
+    return { center: [lon, lat], zoom };
+}
+
+function replaceViewInURL(zoom: number, center: number[]): void {
+    const params = new URLSearchParams(window.location.search);
+    params.set('zoom', zoom.toFixed(2));
+    params.set('lon',  center[0].toFixed(5));
+    params.set('lat',  center[1].toFixed(5));
+    history.replaceState(null, '', `?${params.toString()}`);
+}
+
 function getStateFromURL(): AppState {
     const params = new URLSearchParams(window.location.search);
     const year  = Number(params.get('year'))  || DEFAULT_STATE.currentYear;
@@ -281,6 +307,9 @@ function pushStateToURL(config: URLSyncConfig): void {
     if (config.year  !== undefined) params.set('year',  String(config.year));
     if (config.month !== undefined) params.set('month', String(config.month));
     if (config.day   !== undefined) params.set('day',   String(config.day));
+    if (config.zoom  !== undefined) params.set('zoom',  config.zoom.toFixed(2));
+    if (config.lon   !== undefined) params.set('lon',   config.lon.toFixed(5));
+    if (config.lat   !== undefined) params.set('lat',   config.lat.toFixed(5));
     history.pushState(null, '', `?${params.toString()}`);
 }
 // --- end URL state sync ---
