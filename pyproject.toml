@@ -3,9 +3,11 @@ name = "harmony-flow"
 description = "NASA Harmony API Service for creating vector flow textures"
 authors = [
     {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
+    {name="Rishit Sarkar", email="ritsarkar4@gmail.com"},
 ]
 maintainers = [
     {name="Jacqueline Ryan", email="Jacqueline.Ryan@jpl.nasa.gov"},
+    {name="Rishit Sarkar", email="ritsarkar4@gmail.com"},
 ]
 readme = "README.md"
 license = { text = "Apache-2.0" }
