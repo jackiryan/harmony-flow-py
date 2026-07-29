@@ -41,12 +41,12 @@ This repository includes a sample frontend implementation of the intended use ca
 - [Node.js](https://nodejs.org/) v18 or later (includes `npm`)
 - An [Earthdata Login](https://urs.earthdata.nasa.gov/) account (required for API-driven mode)
 
-The demo loads pre-generated OSCAR INTERIM data for 2019-12-25 on startup so that the visualization is visible immediately without any login. To navigate to other dates or switch collections, you will need to enable API mode with a bearer token.
+The demo loads pre-generated OSCAR INTERIM data for 2020-01-01 on startup so that the visualization is visible immediately without any login. To navigate to other dates or switch collections, you will need to enable API mode with a bearer token.
 
 **1. Generate the Default Sample Data**
-The startup PNG is not included in the repository and must be generated once. From the repo root, run `plot_granule.py` to download and process the OSCAR INTERIM 2019-12-25 granule into the frontend's public directory:
+The startup PNG is not included in the repository and must be generated once. From the repo root, run `plot_granule.py` to download and process the OSCAR INTERIM 2020-01-01 granule (from the production Earthdata archive) into the frontend's public directory:
 ```bash
-uv run python bin/plot_granule.py OSCAR_L4_OC_INTERIM_V2.0 -t 2019-12-25 -d frontend/public
+uv run python bin/plot_granule.py OSCAR_L4_OC_INTERIM_V2.0 -t 2020-01-01 -o oscar_currents_interim_2020-01-01_u_v -d frontend/public
 ```
 
 **2. Install Dependencies**

@@ -64,11 +64,11 @@ async function loadImageData(src: string, lon0 = 0): Promise<CurrentData> {
 }
 
 // Global state
-let currentData: Promise<CurrentData> = loadImageData('/oscar_currents_interim_2019-12-25_u_v.png');
+let currentData: Promise<CurrentData> = loadImageData('/oscar_currents_interim_2020-01-01_u_v.png');
 let currentCollection: CollectionConfig = OSCAR_COLLECTIONS.interim;
 let currentVariables: VariableConfig = VARIABLE_TYPES['u_v'];
 let forceApiMode = false; // Toggle to force using Harmony API instead of static files
-let currentDateStr = '2019-12-25'; // Tracks the currently displayed date
+let currentDateStr = '2020-01-01'; // Tracks the currently displayed date
 const harmonyClient = new HarmonyClient('sit');
 
 // 2. Interpolation Math
@@ -557,9 +557,9 @@ interface AppState {
 }
 
 const DEFAULT_STATE: AppState = {
-    currentYear: 2019,
-    currentMonth: 12,
-    currentDay: 25,
+    currentYear: 2020,
+    currentMonth: 1,
+    currentDay: 1,
 };
 
 function dateStrToState(dateStr: string): AppState {
