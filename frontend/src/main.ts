@@ -10,7 +10,6 @@ import { get as getProjection } from 'ol/proj.js';
 import './style.css';
 import { 
     HarmonyClient, 
-    PNGCache, 
     OSCAR_COLLECTIONS, 
     VARIABLE_TYPES,
     isDateInRange,
@@ -65,13 +64,12 @@ async function loadImageData(src: string, lon0 = 0): Promise<CurrentData> {
 }
 
 // Global state
-let currentData: Promise<CurrentData> = loadImageData('/OSCAR_L4_OC_NRT_V2.0_2020-06-04_u_v.png');
-let currentCollection: CollectionConfig = OSCAR_COLLECTIONS.nrt;
+let currentData: Promise<CurrentData> = loadImageData('/oscar_currents_interim_2019-12-25_u_v.png');
+let currentCollection: CollectionConfig = OSCAR_COLLECTIONS.interim;
 let currentVariables: VariableConfig = VARIABLE_TYPES['u_v'];
 let forceApiMode = false; // Toggle to force using Harmony API instead of static files
-let currentDateStr = '2020-06-01'; // Tracks the currently displayed date
+let currentDateStr = '2019-12-25'; // Tracks the currently displayed date
 const harmonyClient = new HarmonyClient('uat');
-const pngCache = new PNGCache();
 
 // 2. Interpolation Math
 function bilinearInterpolation(
@@ -274,23 +272,8 @@ function hideStatus(): void {
     }
 }
 
-// 9. Dynamic PNG Loading with Caching
+// 9. Dynamic PNG Loading
 async function loadPNGForDate(dateStr: string): Promise<{ pngUrl: string; lon0: number }> {
-    const varKey = currentVariables.variables.join('_');
-    
-    // Check cache first
-    const cached = pngCache.get(currentCollection.id, dateStr, varKey);
-    if (cached) {
-        // Verify URL is still valid
-        const isValid = await pngCache.verify(cached);
-        if (isValid) {
-            console.log('Using cached PNG:', cached);
-            return { pngUrl: cached, lon0: 0 };
-        }
-        console.log('Cached PNG expired, regenerating...');
-    }
-    
-    // Request PNG from Harmony using temporal subset to select the right granule
     const { pngUrl, lon0 } = await harmonyClient.generateTexture(
         currentCollection.id,
         currentCollection.shortname,
@@ -300,10 +283,6 @@ async function loadPNGForDate(dateStr: string): Promise<{ pngUrl: string; lon0: 
             showStatus('Generating Texture', message, progress);
         }
     );
-    
-    // Cache the result
-    // pngCache.set(currentCollection.id, dateStr, varKey, pngUrl);
-    
     return { pngUrl, lon0 };
 }
 
@@ -578,9 +557,9 @@ interface AppState {
 }
 
 const DEFAULT_STATE: AppState = {
-    currentYear: 2020,
-    currentMonth: 6,
-    currentDay: 1,
+    currentYear: 2019,
+    currentMonth: 12,
+    currentDay: 25,
 };
 
 function dateStrToState(dateStr: string): AppState {

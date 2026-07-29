@@ -63,8 +63,14 @@ export class HarmonyClient {
     private baseUrl: string;
     private bearerToken: string | null = null;
 
-    constructor(_venue: 'sit' | 'uat' | 'prod' = 'uat') {
-        this.baseUrl = 'https://harmony.sit.earthdata.nasa.gov';
+    constructor(venue: 'sit' | 'uat' | 'prod' = 'uat') {
+        if (venue === 'sit') {
+            this.baseUrl = 'https://harmony.sit.earthdata.nasa.gov';
+        } else if (venue === 'prod') {
+            this.baseUrl = 'https://harmony.earthdata.nasa.gov';
+        } else {
+            this.baseUrl = 'https://harmony.uat.earthdata.nasa.gov';
+        }
     }
 
     setToken(token: string): void {
@@ -289,141 +295,5 @@ export class HarmonyClient {
         }
 
         return { pngUrl, lon0 };
-    }
-}
-
-/**
- * Cache for storing PNG URLs in localStorage
- */
-export class PNGCache {
-    private static readonly CACHE_KEY = 'harmony-flow-png-cache';
-    private static readonly CACHE_VERSION = 1;
-
-    private cache: Map<string, { url: string; timestamp: number }>;
-
-    constructor() {
-        this.cache = this.loadCache();
-    }
-
-    private getCacheKey(
-        collection: string,
-        granuleName: string,
-        variables: string
-    ): string {
-        return `${collection}:${granuleName}:${variables}`;
-    }
-
-    private loadCache(): Map<string, { url: string; timestamp: number }> {
-        try {
-            const stored = localStorage.getItem(PNGCache.CACHE_KEY);
-            if (stored) {
-                const data = JSON.parse(stored);
-                if (data.version === PNGCache.CACHE_VERSION) {
-                    return new Map(Object.entries(data.entries));
-                }
-            }
-        } catch (e) {
-            console.warn('Failed to load cache:', e);
-        }
-        return new Map();
-    }
-
-    private saveCache(): void {
-        try {
-            const data = {
-                version: PNGCache.CACHE_VERSION,
-                entries: Object.fromEntries(this.cache)
-            };
-            localStorage.setItem(PNGCache.CACHE_KEY, JSON.stringify(data));
-        } catch (e) {
-            console.warn('Failed to save cache:', e);
-        }
-    }
-
-    get(collection: string, granuleName: string, variables: string): string | null {
-        const key = this.getCacheKey(collection, granuleName, variables);
-        const entry = this.cache.get(key);
-        return entry ? entry.url : null;
-    }
-
-    set(collection: string, granuleName: string, variables: string, url: string): void {
-        const key = this.getCacheKey(collection, granuleName, variables);
-        this.cache.set(key, { url, timestamp: Date.now() });
-        this.saveCache();
-    }
-
-    async verify(url: string): Promise<boolean> {
-        try {
-            const response = await fetch(url, { method: 'HEAD' });
-            return response.ok;
-        } catch {
-            return false;
-        }
-    }
-
-    clear(): void {
-        this.cache.clear();
-        localStorage.removeItem(PNGCache.CACHE_KEY);
-    }
-}
-
-/**
- * Granule lookup via CMR search API.
- * Queries CMR for the granule concept ID (G-prefix) for a given collection and date.
- */
-export class GranuleLookup {
-    private static readonly CMR_BASE = '/cmr-proxy';
-
-    /**
-     * Query CMR to find the granule concept ID for a specific date.
-     * Returns the CMR concept ID (e.g. 'G1242574718-POCLOUD') or null.
-     */
-    static async findGranuleId(collectionId: string, dateStr: string): Promise<string | null> {
-        const searchUrl = new URL(
-            `${this.CMR_BASE}/search/granules.json`,
-            window.location.origin
-        );
-        searchUrl.searchParams.set('collection_concept_id', collectionId);
-        searchUrl.searchParams.set('temporal', `${dateStr}T00:00:00Z,${dateStr}T23:59:59Z`);
-        searchUrl.searchParams.set('page_size', '1');
-        searchUrl.searchParams.set('sort_key', '-start_date');
-
-        console.log('=== CMR GRANULE LOOKUP ===');
-        console.log('URL:', searchUrl.toString());
-        console.log('Collection:', collectionId);
-        console.log('Date:', dateStr);
-
-        try {
-            const response = await fetch(searchUrl.toString());
-            if (!response.ok) {
-                console.error('CMR search failed:', response.status, response.statusText);
-                const body = await response.text().catch(() => '(no body)');
-                console.error('CMR error body:', body);
-                return null;
-            }
-
-            const text = await response.text();
-            console.log('CMR raw response:', text);
-            const data = JSON.parse(text);
-            const entries = data?.feed?.entry;
-            console.log('CMR hits:', data?.feed?.['opensearch:totalResults'] ?? 'unknown');
-            console.log('CMR entries:', entries?.length ?? 0);
-
-            if (!entries || entries.length === 0) {
-                console.warn('No granules found in CMR for', dateStr);
-                console.log('==========================');
-                return null;
-            }
-
-            const granuleId = entries[0].id; // CMR concept ID (G-prefix)
-            const granuleTitle = entries[0].title;
-            console.log('Granule ID:', granuleId);
-            console.log('Granule title:', granuleTitle);
-            console.log('==========================');
-            return granuleId;
-        } catch (error) {
-            console.error('CMR lookup error:', error);
-            return null;
-        }
     }
 }

@@ -14,7 +14,6 @@ The `harmony-flow` module follows semantic versioning. All notable changes to th
 - [issue/10](https://github.com/jackiryan/harmony-flow-py/issues/10): Added UI controls for collection selection (NRT/FINAL/INTERIM), variable selection (u/v vs ug/vg), and date picking with native date picker.
 - [issue/10](https://github.com/jackiryan/harmony-flow-py/issues/10): Added authenticated PNG fetching via `fetchImageBlob()` to handle bearer token requirements and CORS restrictions.
 - [issue/10](https://github.com/jackiryan/harmony-flow-py/issues/10): Added dynamic date generation per collection to replace static metadata.json.
-- [issue/10](https://github.com/jackiryan/harmony-flow-py/issues/10): Added Vite development proxy configuration for Harmony and CMR endpoints.
 - [issue/10](https://github.com/jackiryan/harmony-flow-py/issues/10): Added world file (.pgw) fetching from Harmony job results to extract pixel-0 center longitude for correct geographic alignment.
 ### Changed
 - [issue/2](https://github.com/jackiryan/harmony-flow-py/issues/2): Refactored test architecture to securely layer testing dependencies via `uv` on top of the remote production base image.
