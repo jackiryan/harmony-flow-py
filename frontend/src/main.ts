@@ -69,7 +69,7 @@ let currentCollection: CollectionConfig = OSCAR_COLLECTIONS.interim;
 let currentVariables: VariableConfig = VARIABLE_TYPES['u_v'];
 let forceApiMode = false; // Toggle to force using Harmony API instead of static files
 let currentDateStr = '2019-12-25'; // Tracks the currently displayed date
-const harmonyClient = new HarmonyClient('uat');
+const harmonyClient = new HarmonyClient('sit');
 
 // 2. Interpolation Math
 function bilinearInterpolation(
