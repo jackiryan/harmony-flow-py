@@ -181,14 +181,25 @@ function makeFlowLayer(): Flow {
 }
 
 // 6. Map Initialization
+function getViewFromURL(): { center: [number, number]; zoom: number } {
+    const params = new URLSearchParams(window.location.search);
+    const cx = parseFloat(params.get('cx') ?? '');
+    const cy = parseFloat(params.get('cy') ?? '');
+    const z  = parseFloat(params.get('z')  ?? '');
+    const center: [number, number] = (isFinite(cx) && isFinite(cy)) ? [cx, cy] : [0, 0];
+    const zoom = isFinite(z) ? z : 2;
+    return { center, zoom };
+}
+
+const { center: initCenter, zoom: initZoom } = getViewFromURL();
 const map = new Map({
     target: 'map',
     layers: [
         new TileLayer({ source: new OSM() }),
     ],
     view: new View({ 
-        center: [0, 0], 
-        zoom: 2,
+        center: initCenter, 
+        zoom: initZoom,
         projection: 'EPSG:4326' 
     }),
 });
@@ -222,6 +233,16 @@ map.on('movestart', () => {
 });
 
 map.on('moveend', () => {
+    // Persist zoom + center to URL without adding a browser history entry
+    const view = map.getView();
+    const [cx, cy] = view.getCenter() as [number, number];
+    const z = view.getZoom()!;
+    const params = new URLSearchParams(window.location.search);
+    params.set('cx', cx.toFixed(4));
+    params.set('cy', cy.toFixed(4));
+    params.set('z',  z.toFixed(3));
+    history.replaceState(null, '', `?${params.toString()}`);
+
     const oldLayer = flowLayer;
     
     flowLayer = makeFlowLayer();
@@ -616,14 +637,32 @@ function buildNavigator(dates: string[]): void {
     // Tear down existing navigator if present
     document.querySelector('.time-navigator-container')?.remove();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasURLDate = urlParams.has('year') || urlParams.has('month') || urlParams.has('day');
     const initialState = getStateFromURL();
     const initialDateStr = stateToDateStr(initialState);
     let idx = dates.indexOf(initialDateStr);
-    if (idx < 0) idx = 0;
     let isLoading = false;
 
-    if (idx !== 0 || initialDateStr !== dates[0]) {
-        switchDate(dates[idx]);
+    // showingStatic: true when displaying the pre-generated default outside the collection range.
+    // idx is set to dates.length (one past the end) so ◀ naturally navigates to dates[dates.length-1].
+    let showingStatic = false;
+
+    if (idx < 0) {
+        // Date not in collection range
+        idx = initialDateStr > dates[dates.length - 1] ? dates.length : 0;
+        if (!hasURLDate) {
+            // No explicit URL date: show static default, leave currentData untouched
+            showingStatic = true;
+        } else {
+            // URL had an out-of-range date: clamp to nearest boundary and load it
+            idx = Math.min(idx, dates.length - 1);
+            switchDate(dates[idx]);
+        }
+    } else {
+        if (idx !== 0 || initialDateStr !== dates[0]) {
+            switchDate(dates[idx]);
+        }
     }
 
     const container = document.createElement('div');
@@ -654,8 +693,9 @@ function buildNavigator(dates: string[]): void {
     nextBtn.setAttribute('aria-label', 'Next date');
 
     function sync(): void {
-        displayLabel.textContent = formatDateLabel(dates[idx]);
-        dateInput.value = dates[idx];
+        const displayDate = showingStatic ? currentDateStr : dates[idx];
+        displayLabel.textContent = formatDateLabel(displayDate);
+        dateInput.value = displayDate;
         prevBtn.disabled = isLoading || idx <= 0;
         nextBtn.disabled = isLoading || idx >= dates.length - 1;
         nav.classList.toggle('loading', isLoading);
@@ -696,6 +736,7 @@ function buildNavigator(dates: string[]): void {
 
     async function navigateTo(newIdx: number): Promise<void> {
         if (isLoading) return;
+        showingStatic = false;
         isLoading = true;
         idx = newIdx;
         sync();
