@@ -68,3 +68,309 @@ html, body {
   font-weight: 600;
   letter-spacing: 0.01em;
 }
+
+.time-display-clickable {
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.5);
+  padding-bottom: 1px;
+}
+
+.time-display-clickable:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.9);
+}
+
+.time-date-input {
+  min-width: 140px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 2px 6px;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  color-scheme: dark;
+}
+
+.controls-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-group {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.control-label {
+  display: block;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.control-select {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.control-select:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.control-select:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.control-select option {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.status-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 20px 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  min-width: 300px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.status-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.status-message {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.status-progress {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.status-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22a884, #7ad151);
+  transition: width 0.3s ease;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle-checkbox {
+  display: none;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-text {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  transition: background-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-checkbox:checked + .toggle-label .toggle-switch {
+  background-color: #22a884;
+  border-color: #22a884;
+}
+
+.toggle-checkbox:checked + .toggle-label .toggle-switch::after {
+  transform: translateX(20px);
+}
+
+.toggle-label:hover .toggle-switch {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.toggle-checkbox:checked + .toggle-label:hover .toggle-switch {
+  background-color: #1e9574;
+}
+
+/* Credentials Dialog */
+.credentials-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.credentials-dialog {
+  background-color: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 380px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.credentials-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.credentials-subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.credentials-field {
+  margin-bottom: 16px;
+}
+
+.credentials-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.credentials-input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.credentials-input:focus {
+  outline: none;
+  border-color: #22a884;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.credentials-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.credentials-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.credentials-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.credentials-btn-cancel {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.credentials-btn-cancel:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.credentials-btn-submit {
+  background-color: #22a884;
+  color: #ffffff;
+}
+
+.credentials-btn-submit:hover {
+  background-color: #1e9574;
+}
+
+.credentials-link {
+  color: #22a884;
+  text-decoration: underline;
+}

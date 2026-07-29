@@ -29,7 +29,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy source and install the project
 COPY README.md ./
-COPY src/ src/
+COPY src/harmony_service/ harmony_service
+COPY src/harmony_flow/ harmony_flow
 COPY docker/ docker/
 RUN uv sync --frozen --no-dev
 

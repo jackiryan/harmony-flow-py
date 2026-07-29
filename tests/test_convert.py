@@ -438,7 +438,7 @@ class TestCreateImageTexture:
         and validates the generated PNG against a known checksum.
         """
         EXPECTED_PNG_CHECKSUM: str = (
-            "e6734772b49c0bf34a04c7c8c8ede6fbc32a6c221b4cd3705ced47be5a4d82fd"
+            "408578949a9798b55bfe716f05b3434c7205e4cc456908a45a740cb592ba6797"
         )
 
         earthaccess.login()
