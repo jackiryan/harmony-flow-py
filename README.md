@@ -39,13 +39,14 @@ This repository includes a sample frontend implementation of the intended use ca
 
 **Prerequisites**
 - [Node.js](https://nodejs.org/) v18 or later (includes `npm`)
+- An [Earthdata Login](https://urs.earthdata.nasa.gov/) account (required for API-driven mode)
 
-To run the local visualization demo, you first need to generate a sample texture using `plot_granule.py`, and then serve it using the frontend web server.
+The demo loads pre-generated OSCAR INTERIM data for 2020-01-01 on startup so that the visualization is visible immediately without any login. To navigate to other dates or switch collections, you will need to enable API mode with a bearer token.
 
-**1. Generate the Sample Data**
-From the repo root, run `plot_granule.py` to download and process an OSCAR granule directly into the frontend's public directory:
+**1. Generate the Default Sample Data**
+The startup PNG is not included in the repository and must be generated once. From the repo root, run `plot_granule.py` to download and process the OSCAR INTERIM 2020-01-01 granule (from the production Earthdata archive) into the frontend's public directory:
 ```bash
-uv run python bin/plot_granule.py OSCAR_L4_OC_NRT_V2.0 -t 2026-06-04 -d frontend/public
+uv run python bin/plot_granule.py OSCAR_L4_OC_INTERIM_V2.0 -t 2020-01-01 -o oscar_currents_interim_2020-01-01_u_v -d frontend/public
 ```
 
 **2. Install Dependencies**
@@ -65,6 +66,15 @@ Once the server starts, open your browser and navigate to:
 ```
 http://localhost:5173/
 ```
+
+**4. API-Driven Mode (for navigating dates)**
+No data will load when using the date navigator or switching collections until you provide a bearer token. To enable live data fetching:
+
+1. Obtain a bearer token for the [Harmony UAT environment](https://harmony.uat.earthdata.nasa.gov/) using your Earthdata Login credentials.
+2. Click the **"Enable API Mode"** toggle in the UI and paste your token when prompted.
+3. Use the **date navigator** (left/right arrows or the clickable date label) to fetch data for any date in the selected collection's range.
+4. Switch between **OSCAR NRT**, **OSCAR FINAL**, and **OSCAR INTERIM** collections using the collection selector.
+5. Switch between **Surface Currents (u/v)** and **Geostrophic Currents (ug/vg)** variables using the variable selector.
 
 ### Releasing a new version of the service:
 

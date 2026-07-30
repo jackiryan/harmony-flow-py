@@ -8,15 +8,36 @@ import DataTileSource from 'ol/source/DataTile.js';
 import { createForProjection, wrapX } from 'ol/tilegrid.js'; 
 import { get as getProjection } from 'ol/proj.js'; 
 import './style.css';
+import { 
+    HarmonyClient, 
+    OSCAR_COLLECTIONS, 
+    VARIABLE_TYPES,
+    isDateInRange,
+    type CollectionConfig,
+    type VariableConfig 
+} from './harmony-api.js';
 
 // 1. Load the PNG
 interface CurrentData {
     data: Uint8ClampedArray;
     width: number;
     height: number;
+    lon0: number; // center longitude of pixel 0 (degrees); accounts for non-zero west edge
 }
 
-function loadImageData(src: string): Promise<CurrentData> {
+async function fetchImageBlob(url: string): Promise<string> {
+    const headers: Record<string, string> = {};
+    const token = harmonyClient?.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+}
+
+async function loadImageData(src: string, lon0 = 0): Promise<CurrentData> {
+    // External URLs need auth header and can't be loaded directly by <img>
+    const imageSrc = src.startsWith('http') ? await fetchImageBlob(src) : src;
     return new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => {
@@ -32,15 +53,23 @@ function loadImageData(src: string): Promise<CurrentData> {
             resolve({
                 data: context.getImageData(0, 0, image.width, image.height).data,
                 width: image.width,
-                height: image.height
+                height: image.height,
+                lon0,
             });
+            if (imageSrc !== src) URL.revokeObjectURL(imageSrc);
         };
-        image.onerror = () => reject(new Error('failed to load'));
-        image.src = src;
+        image.onerror = () => reject(new Error(`failed to load image: ${src}`));
+        image.src = imageSrc;
     });
 }
 
-let currentData: Promise<CurrentData> = loadImageData('/OSCAR_L4_OC_NRT_V2.0_2026-06-04_u_v.png');
+// Global state
+let currentData: Promise<CurrentData> = loadImageData('/oscar_currents_interim_2020-01-01_u_v.png');
+let currentCollection: CollectionConfig = OSCAR_COLLECTIONS.interim;
+let currentVariables: VariableConfig = VARIABLE_TYPES['u_v'];
+let forceApiMode = false; // Toggle to force using Harmony API instead of static files
+let currentDateStr = '2020-01-01'; // Tracks the currently displayed date
+const harmonyClient = new HarmonyClient('sit');
 
 // 2. Interpolation Math
 function bilinearInterpolation(
@@ -69,8 +98,8 @@ const dataTileSize = 256;
 const inputBands = 4;
 const dataBands = 3;
 
-const minU = -2.92, maxU = 2.93, deltaU = maxU - minU;
-const minV = -2.81, maxV = 2.69, deltaV = maxV - minV;
+let minU = -2.92, maxU = 2.93, deltaU = maxU - minU;
+let minV = -2.81, maxV = 2.69, deltaV = maxV - minV;
 
 // 4. Data Loader
 const currents = new DataTileSource({
@@ -79,7 +108,7 @@ const currents = new DataTileSource({
     transition: 0,
     wrapX: true, 
     async loader(z: number, x: number, y: number): Promise<Float32Array> {
-        const { data: inputData, width: inputWidth, height: inputHeight } = await currentData;
+        const { data: inputData, width: inputWidth, height: inputHeight, lon0 } = await currentData;
         const tileCoord = wrapX(dataTileGrid, [z, x, y], dataTileProjection);
         const extent = dataTileGrid.getTileCoordExtent(tileCoord)!;
         const resolution = dataTileGrid.getResolution(z);
@@ -95,7 +124,9 @@ const currents = new DataTileSource({
                 const degreesPerPixelX = 360 / inputWidth;
                 const degreesPerPixelY = 180 / inputHeight;
 
-                const xPos = lon360 / degreesPerPixelX;
+                // Adjust for non-zero west edge: lon0 is the center longitude of pixel 0
+                const adjustedLon = ((lon360 - lon0) % 360 + 360) % 360;
+                const xPos = adjustedLon / degreesPerPixelX;
                 const yPos = (90 - lat) / degreesPerPixelY;
 
                 let x1 = Math.floor(xPos), x2 = Math.ceil(xPos);
@@ -215,32 +246,306 @@ map.on('moveend', () => {
     warmUpId = requestAnimationFrame(warmUp);
 });
 
-// 8. Date Switching
-function switchDate(dateStr: string): void {
-    currentData = loadImageData(`/OSCAR_L4_OC_NRT_V2.0_${dateStr}_u_v.png`);
-    currents.clear();
-    if (warmUpId !== null) {
-        cancelAnimationFrame(warmUpId);
-        warmUpId = null;
+// 8. Status Indicator
+function showStatus(title: string, message: string, progress?: number): HTMLElement {
+    let statusEl = document.querySelector('.status-indicator') as HTMLElement;
+    
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.className = 'status-indicator';
+        document.getElementById('map')!.appendChild(statusEl);
     }
-    const oldLayer = flowLayer;
-    flowLayer = makeFlowLayer();
-    flowLayer.setOpacity(0);
-    map.addLayer(flowLayer);
-    let frames = 0;
-    const warmUp = () => {
-        if (++frames < 10) {
-            warmUpId = requestAnimationFrame(warmUp);
-        } else {
-            flowLayer.setOpacity(1);
-            map.removeLayer(oldLayer);
-            warmUpId = null;
-        }
-    };
-    warmUpId = requestAnimationFrame(warmUp);
+    
+    const progressBar = progress !== undefined 
+        ? `<div class="status-progress"><div class="status-progress-bar" style="width: ${progress}%"></div></div>`
+        : '';
+    
+    statusEl.innerHTML = `
+        <div class="status-title">${title}</div>
+        <div class="status-message">${message}</div>
+        ${progressBar}
+    `;
+    
+    return statusEl;
 }
 
-// 9. Time Navigator
+function hideStatus(): void {
+    const statusEl = document.querySelector('.status-indicator');
+    if (statusEl) {
+        statusEl.remove();
+    }
+}
+
+// 9. Dynamic PNG Loading
+async function loadPNGForDate(dateStr: string): Promise<{ pngUrl: string; lon0: number }> {
+    const { pngUrl, lon0 } = await harmonyClient.generateTexture(
+        currentCollection.id,
+        currentCollection.shortname,
+        dateStr,
+        currentVariables.variables,
+        (progress, message) => {
+            showStatus('Generating Texture', message, progress);
+        }
+    );
+    return { pngUrl, lon0 };
+}
+
+// 10. Date Switching with Dynamic Loading
+async function switchDate(dateStr: string): Promise<void> {
+    currentDateStr = dateStr;
+    try {
+        // Check if we should use API mode or static files
+        if (forceApiMode) {
+            // Check date is within the selected collection's temporal range
+            if (!isDateInRange(dateStr, currentCollection)) {
+                const end = currentCollection.endDate ?? 'present';
+                throw new Error(
+                    `${currentCollection.name} has no data for ${dateStr}. ` +
+                    `Coverage: ${currentCollection.startDate} → ${end}.`
+                );
+            }
+            // Force API mode: skip static file check
+            showStatus('Loading Data', 'Checking cache...', 0);
+            const { pngUrl, lon0 } = await loadPNGForDate(dateStr);
+            currentData = loadImageData(pngUrl, lon0);
+            console.log('Current data:', currentData);
+        } else {
+            // Try to load from local static files first (for development)
+            const staticUrl = `/oscar_currents_nrt_${dateStr}_${currentVariables.variables.join('_')}.png`;
+            
+            try {
+                const response = await fetch(staticUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    // Static file exists, use it
+                    currentData = loadImageData(staticUrl);
+                } else {
+                    throw new Error('Static file not found');
+                }
+            } catch {
+                // Fall back to dynamic generation
+                showStatus('Loading Data', 'Checking cache...', 0);
+                const { pngUrl, lon0 } = await loadPNGForDate(dateStr);
+                currentData = loadImageData(pngUrl, lon0);
+            }
+        }
+        
+        hideStatus();
+        
+        currents.clear();
+        if (warmUpId !== null) {
+            cancelAnimationFrame(warmUpId);
+            warmUpId = null;
+        }
+        const oldLayer = flowLayer;
+        flowLayer = makeFlowLayer();
+        flowLayer.setOpacity(0);
+        map.addLayer(flowLayer);
+        let frames = 0;
+        const warmUp = () => {
+            if (++frames < 10) {
+                warmUpId = requestAnimationFrame(warmUp);
+            } else {
+                flowLayer.setOpacity(1);
+                map.removeLayer(oldLayer);
+                warmUpId = null;
+            }
+        };
+        warmUpId = requestAnimationFrame(warmUp);
+    } catch (error) {
+        console.error('Error switching date:', error);
+        showStatus('Error', `Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setTimeout(hideStatus, 5000);
+    }
+}
+
+// 11. Earthdata Bearer Token Dialog
+function promptToken(): Promise<string | null> {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'credentials-overlay';
+
+        overlay.innerHTML = `
+            <div class="credentials-dialog">
+                <div class="credentials-title">Earthdata Bearer Token</div>
+                <div class="credentials-subtitle">
+                    Log in to <a href="https://uat.urs.earthdata.nasa.gov" target="_blank" class="credentials-link">uat.urs.earthdata.nasa.gov</a>,
+                    go to <strong>Profile &rarr; User Tokens</strong>
+                    (<code>/users/&lt;username&gt;/user_tokens</code>), generate a token, and paste it below.
+                </div>
+                <div class="credentials-field">
+                    <label class="credentials-label">Bearer Token</label>
+                    <input type="password" class="credentials-input" id="cred-token" placeholder="Paste your Earthdata token here" />
+                    <div id="cred-error" style="color:#ff6b6b;font-size:0.75rem;margin-top:4px;display:none;">Invalid token — must be a JWT (starts with eyJ…). Generate one at the link above.</div>
+                </div>
+                <div class="credentials-actions">
+                    <button class="credentials-btn credentials-btn-cancel" id="cred-cancel">Cancel</button>
+                    <button class="credentials-btn credentials-btn-submit" id="cred-submit">Connect</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const tokenInput = overlay.querySelector('#cred-token') as HTMLInputElement;
+        tokenInput.focus();
+
+        const finish = (token: string | null) => {
+            overlay.remove();
+            resolve(token);
+        };
+
+        const errorMsg = overlay.querySelector('#cred-error') as HTMLElement;
+        const isValidToken = (t: string) => t.startsWith('eyJ') && t.split('.').length === 3;
+
+        const trySubmit = () => {
+            const token = tokenInput.value.trim();
+            if (!token) return;
+            if (!isValidToken(token)) {
+                errorMsg.style.display = 'block';
+                tokenInput.style.borderColor = '#ff6b6b';
+                return;
+            }
+            finish(token);
+        };
+
+        tokenInput.addEventListener('input', () => {
+            errorMsg.style.display = 'none';
+            tokenInput.style.borderColor = '';
+        });
+
+        overlay.querySelector('#cred-cancel')!.addEventListener('click', () => finish(null));
+        overlay.querySelector('#cred-submit')!.addEventListener('click', trySubmit);
+        tokenInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') trySubmit(); });
+    });
+}
+
+// 12. UI Controls
+function buildControls(): void {
+    const container = document.createElement('div');
+    container.className = 'controls-container';
+    
+    // Collection selector
+    const collectionGroup = document.createElement('div');
+    collectionGroup.className = 'control-group';
+    
+    const collectionLabel = document.createElement('label');
+    collectionLabel.className = 'control-label';
+    collectionLabel.textContent = 'Collection';
+    
+    const collectionSelect = document.createElement('select');
+    collectionSelect.className = 'control-select';
+    
+    Object.entries(OSCAR_COLLECTIONS).forEach(([key, config]) => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = config.name;
+        if (config.id === currentCollection.id) {
+            option.selected = true;
+        }
+        collectionSelect.appendChild(option);
+    });
+    
+    collectionSelect.addEventListener('change', async (e) => {
+        const key = (e.target as HTMLSelectElement).value;
+        currentCollection = OSCAR_COLLECTIONS[key as keyof typeof OSCAR_COLLECTIONS];
+        console.log('Collection changed to:', currentCollection.name);
+        buildNavigator(generateDatesForCollection(currentCollection));
+    });
+    
+    collectionGroup.appendChild(collectionLabel);
+    collectionGroup.appendChild(collectionSelect);
+    
+    // Variable selector
+    const variableGroup = document.createElement('div');
+    variableGroup.className = 'control-group';
+    
+    const variableLabel = document.createElement('label');
+    variableLabel.className = 'control-label';
+    variableLabel.textContent = 'Variables';
+    
+    const variableSelect = document.createElement('select');
+    variableSelect.className = 'control-select';
+    
+    Object.entries(VARIABLE_TYPES).forEach(([key, config]) => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = config.name;
+        if (config.variables.join('_') === currentVariables.variables.join('_')) {
+            option.selected = true;
+        }
+        variableSelect.appendChild(option);
+    });
+    
+    variableSelect.addEventListener('change', async (e) => {
+        const key = (e.target as HTMLSelectElement).value;
+        currentVariables = VARIABLE_TYPES[key as keyof typeof VARIABLE_TYPES];
+        console.log('Variables changed to:', currentVariables.name);
+        switchDate(currentDateStr);
+    });
+    
+    variableGroup.appendChild(variableLabel);
+    variableGroup.appendChild(variableSelect);
+    
+    // API Mode toggle
+    const apiModeGroup = document.createElement('div');
+    apiModeGroup.className = 'control-group';
+    
+    const apiModeLabel = document.createElement('label');
+    apiModeLabel.className = 'control-label';
+    apiModeLabel.textContent = 'Data Source';
+    
+    const apiModeToggle = document.createElement('div');
+    apiModeToggle.className = 'toggle-container';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'api-mode-toggle';
+    checkbox.className = 'toggle-checkbox';
+    checkbox.checked = forceApiMode;
+    
+    const toggleLabel = document.createElement('label');
+    toggleLabel.htmlFor = 'api-mode-toggle';
+    toggleLabel.className = 'toggle-label';
+    toggleLabel.innerHTML = `
+        <span class="toggle-text">${forceApiMode ? 'Harmony API' : 'Static Files'}</span>
+        <span class="toggle-switch"></span>
+    `;
+    
+    checkbox.addEventListener('change', async (e) => {
+        const enabled = (e.target as HTMLInputElement).checked;
+
+        if (enabled && !harmonyClient.hasToken()) {
+            const token = await promptToken();
+            if (!token) {
+                checkbox.checked = false;
+                return;
+            }
+            harmonyClient.setToken(token);
+        }
+
+        forceApiMode = enabled;
+        const text = toggleLabel.querySelector('.toggle-text');
+        if (text) {
+            text.textContent = forceApiMode ? 'Harmony API' : 'Static Files';
+        }
+        console.log('API mode:', forceApiMode ? 'enabled' : 'disabled');
+        if (forceApiMode) {
+            switchDate(currentDateStr);
+        }
+    });
+    
+    apiModeToggle.appendChild(checkbox);
+    apiModeToggle.appendChild(toggleLabel);
+    apiModeGroup.appendChild(apiModeLabel);
+    apiModeGroup.appendChild(apiModeToggle);
+    
+    container.appendChild(collectionGroup);
+    container.appendChild(variableGroup);
+    container.appendChild(apiModeGroup);
+    document.getElementById('map')!.appendChild(container);
+}
+
+// 12. Time Navigator
 interface OscarMetadata { dates: string[] }
 
 interface URLSyncConfig {
@@ -259,9 +564,9 @@ interface AppState {
 }
 
 const DEFAULT_STATE: AppState = {
-    currentYear: 2026,
-    currentMonth: 6,
-    currentDay: 4,
+    currentYear: 2020,
+    currentMonth: 1,
+    currentDay: 1,
 };
 
 function dateStrToState(dateStr: string): AppState {
@@ -324,15 +629,48 @@ function formatDateLabel(dateStr: string): string {
     return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
 }
 
+function generateDatesForCollection(collection: CollectionConfig): string[] {
+    const dates: string[] = [];
+    const end = collection.endDate ?? new Date().toISOString().slice(0, 10);
+    const cur = new Date(collection.startDate + 'T12:00:00Z');
+    const endDate = new Date(end + 'T12:00:00Z');
+    while (cur <= endDate) {
+        dates.push(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return dates;
+}
+
 function buildNavigator(dates: string[]): void {
+    // Tear down existing navigator if present
+    document.querySelector('.time-navigator-container')?.remove();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasURLDate = urlParams.has('year') || urlParams.has('month') || urlParams.has('day');
     const initialState = getStateFromURL();
     const initialDateStr = stateToDateStr(initialState);
-    const initialIdx = dates.indexOf(initialDateStr);
-    let idx = initialIdx >= 0 ? initialIdx : 0;
+    let idx = dates.indexOf(initialDateStr);
     let isLoading = false;
 
-    if (idx !== 0) {
-        switchDate(dates[idx]);
+    // showingStatic: true when displaying the pre-generated default outside the collection range.
+    // idx is set to dates.length (one past the end) so ◀ naturally navigates to dates[dates.length-1].
+    let showingStatic = false;
+
+    if (idx < 0) {
+        // Date not in collection range
+        idx = initialDateStr > dates[dates.length - 1] ? dates.length : 0;
+        if (!hasURLDate) {
+            // No explicit URL date: show static default, leave currentData untouched
+            showingStatic = true;
+        } else {
+            // URL had an out-of-range date: clamp to nearest boundary and load it
+            idx = Math.min(idx, dates.length - 1);
+            switchDate(dates[idx]);
+        }
+    } else {
+        if (idx !== 0 || initialDateStr !== dates[0]) {
+            switchDate(dates[idx]);
+        }
     }
 
     const container = document.createElement('div');
@@ -346,8 +684,16 @@ function buildNavigator(dates: string[]): void {
     prevBtn.textContent = '◀';
     prevBtn.setAttribute('aria-label', 'Previous date');
 
-    const display = document.createElement('span');
-    display.className = 'time-display';
+    const displayLabel = document.createElement('span');
+    displayLabel.className = 'time-display time-display-clickable';
+    displayLabel.title = 'Click to jump to a date';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'time-date-input';
+    dateInput.min = dates[0];
+    dateInput.max = dates[dates.length - 1];
+    dateInput.style.display = 'none';
 
     const nextBtn = document.createElement('button');
     nextBtn.className = 'time-nav-button';
@@ -355,27 +701,63 @@ function buildNavigator(dates: string[]): void {
     nextBtn.setAttribute('aria-label', 'Next date');
 
     function sync(): void {
-        display.textContent = formatDateLabel(dates[idx]);
+        const displayDate = showingStatic ? currentDateStr : dates[idx];
+        displayLabel.textContent = formatDateLabel(displayDate);
+        dateInput.value = displayDate;
         prevBtn.disabled = isLoading || idx <= 0;
         nextBtn.disabled = isLoading || idx >= dates.length - 1;
         nav.classList.toggle('loading', isLoading);
     }
 
-    function navigateTo(newIdx: number): void {
+    function findNearestIdx(targetDate: string): number {
+        if (targetDate <= dates[0]) return 0;
+        if (targetDate >= dates[dates.length - 1]) return dates.length - 1;
+        let lo = 0, hi = dates.length - 1;
+        while (lo < hi - 1) {
+            const mid = Math.floor((lo + hi) / 2);
+            if (dates[mid] <= targetDate) lo = mid; else hi = mid;
+        }
+        const diffLo = Math.abs(new Date(targetDate).getTime() - new Date(dates[lo]).getTime());
+        const diffHi = Math.abs(new Date(dates[hi]).getTime() - new Date(targetDate).getTime());
+        return diffLo <= diffHi ? lo : hi;
+    }
+
+    displayLabel.addEventListener('click', () => {
         if (isLoading) return;
+        displayLabel.style.display = 'none';
+        dateInput.style.display = '';
+        dateInput.focus();
+        dateInput.showPicker?.();
+    });
+
+    const commitDateInput = () => {
+        dateInput.style.display = 'none';
+        displayLabel.style.display = '';
+        if (dateInput.value) {
+            const nearest = findNearestIdx(dateInput.value);
+            if (nearest !== idx) navigateTo(nearest);
+        }
+    };
+
+    dateInput.addEventListener('change', commitDateInput);
+    dateInput.addEventListener('blur', commitDateInput);
+
+    async function navigateTo(newIdx: number): Promise<void> {
+        if (isLoading) return;
+        showingStatic = false;
         isLoading = true;
         idx = newIdx;
         sync();
         const state = dateStrToState(dates[idx]);
         pushStateToURL({ year: state.currentYear, month: state.currentMonth, day: state.currentDay });
-        switchDate(dates[idx]);
+        await switchDate(dates[idx]);
         setTimeout(() => { isLoading = false; sync(); }, 300);
     }
 
     prevBtn.addEventListener('click', () => { if (idx > 0) navigateTo(idx - 1); });
     nextBtn.addEventListener('click', () => { if (idx < dates.length - 1) navigateTo(idx + 1); });
 
-    window.addEventListener('popstate', () => {
+    window.addEventListener('popstate', async () => {
         const state = getStateFromURL();
         const target = stateToDateStr(state);
         const targetIdx = dates.indexOf(target);
@@ -383,22 +765,21 @@ function buildNavigator(dates: string[]): void {
             isLoading = true;
             idx = targetIdx;
             sync();
-            switchDate(dates[idx]);
+            await switchDate(dates[idx]);
             setTimeout(() => { isLoading = false; sync(); }, 300);
         }
     });
 
     nav.appendChild(prevBtn);
-    nav.appendChild(display);
+    nav.appendChild(displayLabel);
+    nav.appendChild(dateInput);
     nav.appendChild(nextBtn);
     container.appendChild(nav);
     document.getElementById('map')!.appendChild(container);
     sync();
 }
 
-fetch('/metadata.json')
-    .then(r => r.json())
-    .then((meta: OscarMetadata) => {
-        if (meta.dates?.length) buildNavigator(meta.dates);
-    })
-    .catch(err => console.error('Failed to load metadata.json:', err));
+// Initialize UI
+buildControls();
+
+buildNavigator(generateDatesForCollection(currentCollection));
