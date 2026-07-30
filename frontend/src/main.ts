@@ -181,25 +181,15 @@ function makeFlowLayer(): Flow {
 }
 
 // 6. Map Initialization
-function getViewFromURL(): { center: [number, number]; zoom: number } {
-    const params = new URLSearchParams(window.location.search);
-    const cx = parseFloat(params.get('cx') ?? '');
-    const cy = parseFloat(params.get('cy') ?? '');
-    const z  = parseFloat(params.get('z')  ?? '');
-    const center: [number, number] = (isFinite(cx) && isFinite(cy)) ? [cx, cy] : [0, 0];
-    const zoom = isFinite(z) ? z : 2;
-    return { center, zoom };
-}
-
-const { center: initCenter, zoom: initZoom } = getViewFromURL();
+const initialView = getViewFromURL();
 const map = new Map({
     target: 'map',
     layers: [
         new TileLayer({ source: new OSM() }),
     ],
     view: new View({ 
-        center: initCenter, 
-        zoom: initZoom,
+        center: initialView.center, 
+        zoom: initialView.zoom,
         projection: 'EPSG:4326' 
     }),
 });
@@ -233,15 +223,8 @@ map.on('movestart', () => {
 });
 
 map.on('moveend', () => {
-    // Persist zoom + center to URL without adding a browser history entry
     const view = map.getView();
-    const [cx, cy] = view.getCenter() as [number, number];
-    const z = view.getZoom()!;
-    const params = new URLSearchParams(window.location.search);
-    params.set('cx', cx.toFixed(4));
-    params.set('cy', cy.toFixed(4));
-    params.set('z',  z.toFixed(3));
-    history.replaceState(null, '', `?${params.toString()}`);
+    replaceViewInURL(view.getZoom()!, view.getCenter()!);
 
     const oldLayer = flowLayer;
     
@@ -569,6 +552,9 @@ interface URLSyncConfig {
     year?: number;
     month?: number;
     day?: number;
+    zoom?: number;
+    lon?: number;
+    lat?: number;
 }
 
 interface AppState {
@@ -592,6 +578,25 @@ function stateToDateStr(state: AppState): string {
     const mm = String(state.currentMonth).padStart(2, '0');
     const dd = String(state.currentDay).padStart(2, '0');
     return `${state.currentYear}-${mm}-${dd}`;
+}
+
+function getViewFromURL(): { center: [number, number]; zoom: number } {
+    const params = new URLSearchParams(window.location.search);
+    const zoomParam = params.get('zoom');
+    const lonParam  = params.get('lon');
+    const latParam  = params.get('lat');
+    const zoom = zoomParam !== null ? Number(zoomParam) : 2;
+    const lon  = lonParam  !== null ? Number(lonParam)  : 0;
+    const lat  = latParam  !== null ? Number(latParam)  : 0;
+    return { center: [lon, lat], zoom };
+}
+
+function replaceViewInURL(zoom: number, center: number[]): void {
+    const params = new URLSearchParams(window.location.search);
+    params.set('zoom', zoom.toFixed(2));
+    params.set('lon',  center[0].toFixed(5));
+    params.set('lat',  center[1].toFixed(5));
+    history.replaceState(null, '', `?${params.toString()}`);
 }
 
 function getStateFromURL(): AppState {
